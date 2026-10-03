@@ -135,7 +135,7 @@ tr td:nth-child(5){width:120px}
 
 <div class="card noprint">
   <h2>Copy back into Lucid</h2>
-  <p class="small" style="margin-top:0">Copies the current table (with ROUTED SOURCE filled in) so you can paste it over the table in your Lucid doc. In Lucid, click the first cell under the header (the one that says <b>&#9654; IN 01</b>) and paste. Check the first and last rows afterwards.</p>
+  <p class="small" style="margin-top:0">Copies the current table (with ROUTED SOURCE filled in) in the same format a spreadsheet uses, so Lucid can paste it into its table cells. In Lucid, click once inside the first cell under the header (the one that says <b>&#9654; IN 01</b>), then paste. <b>Check the first and last rows afterwards.</b> If Lucid drops loose text boxes instead of filling cells, undo (Ctrl+Z) and type the values directly in the table.</p>
   <div class="row"><button id="btnLucid">Copy table for Lucid</button><label class="small"><input type="checkbox" id="chkHdr"> include the column header row</label><span class="small" id="lucidnote"></span></div>
 </div>
 
@@ -2672,11 +2672,18 @@ function tsvText(hdr){
   state.rows.forEach(function(r,i){var p=i+1,v=r.xpt!==""&&/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
     t+=["\u25b6 IN "+pad(p),r.from,r.inl,r.outl,v?state.rows[v-1].inl:"",r.xpt,"OUT "+pad(p)+" \u25b6"].join("\t")+"\n"});
   return t}
-$("btnLucid").onclick=function(){var n=$("lucidnote"),txt=tsvText($("chkHdr").checked);
-  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){n.textContent="Copied. Paste into Lucid.";n.style.color="#1d6b33"},function(){n.textContent="Clipboard blocked by the browser.";n.style.color="#a12622"})};
+function htmlTable(hdr){
+  var rows=tsvText(hdr).replace(/\n$/,"").split("\n");
+  return "<meta charset='utf-8'><table><tbody>"+rows.map(function(r){return"<tr>"+r.split("\t").map(function(c){return"<td>"+esc(c)+"</td>"}).join("")+"</tr>"}).join("")+"</tbody></table>"}
+$("btnLucid").onclick=function(){var n=$("lucidnote"),hdr=$("chkHdr").checked,txt=tsvText(hdr),html=htmlTable(hdr);
+  function ok(){n.textContent="Copied as a table. In Lucid click inside the first data cell, then paste.";n.style.color="#1d6b33"}
+  function bad(){n.textContent="Clipboard blocked by the browser.";n.style.color="#a12622"}
+  if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+    navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([txt],{type:"text/plain"})})]).then(ok,function(){(navigator.clipboard.writeText(txt)).then(ok,bad)})}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,bad)}else bad()};
 
 // test hooks
-window.__vh={tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,analyze:analyze,pack:pack,unpack:unpack};
+window.__vh={htmlTable:htmlTable,tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,analyze:analyze,pack:pack,unpack:unpack};
 
 // boot: link payload, else blank template
 (async function(){
