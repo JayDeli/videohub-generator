@@ -61,11 +61,42 @@ tr td:nth-child(5){width:120px}
 .linkbox input{width:100%;font:11px monospace}
 .hide{display:none}
 @media print{header button,#drop,.noprint{display:none}}
+
+.howto h3{font-size:13px;margin:14px 0 4px;color:var(--blue)}
+.howto ol{margin:4px 0 0;padding-left:20px}.howto li{margin-bottom:4px}
+.howto code{background:#eef0f3;padding:1px 5px;border-radius:3px;font-size:12px}
 </style>
 </head>
 <body>
 <header><h1>Videohub File Generator</h1><span>Blackmagic Videohub 40x40 &middot; runs entirely in your browser, nothing is uploaded</span></header>
 <main>
+
+<details class="card" id="howto" open>
+  <summary style="cursor:pointer;font-weight:700;font-size:15px">How to use this &mdash; fill the table, make the files, load the Videohub</summary>
+  <div class="howto">
+  <h3>A &middot; Fill in the table (in Lucid, or right here)</h3>
+  <ol>
+    <li><b>IN LABEL</b>: name each source feeding the router (what is on that input). Max 12 characters, keep each name unique. Leave unused inputs as <code>IN 15</code> etc.</li>
+    <li><b>FROM (PATCH)</b>: where that input is cabled from (for example <code>AQ 1.1</code>). Notes for the tech only; it does not go to the router.</li>
+    <li><b>OUT LABEL</b>: name each destination (what that output feeds). Max 12 characters, unique. Leave unused outputs as <code>OUT 15</code> etc.</li>
+    <li><b>XPT</b>: the <b>input number</b> (1&ndash;40) that this output should take. Blank = leave that output unchanged. <b>ROUTED SOURCE</b> is only a reading aid, so it can be left blank; this page works it out from XPT.</li>
+    <li>Rows are ports: row 05 on the left is <i>input 5</i>, row 05 on the right is <i>output 5</i>. They are separate, not connected to each other.</li>
+  </ol>
+  <h3>B &middot; Make the files</h3>
+  <ol>
+    <li>In Lucid select the table cells, copy, then press <b>Ctrl+V</b> (Cmd+V) on this page. Or open the link someone sent you and the table is already loaded.</li>
+    <li>Fix anything marked <b>ERROR</b> (red) before downloading. Warnings are advice only. Edit directly in the grid if something is wrong; the preview shows exactly what the router will do.</li>
+    <li>Click <b>Download videohub_load.txt</b> (this is the file that loads the router) and the CSV if you want a copy of the table.</li>
+  </ol>
+  <h3>C &middot; Load it onto the Videohub</h3>
+  <p class="small" style="margin-top:0"><b>Loading replaces the labels and routes on the unit.</b> Write down or screenshot what is on it now, and try the file on a bench unit before show day.</p>
+  <ol>
+    <li><b>Easiest:</b> put your computer on the same network as the Videohub and run the small helper script (needs Python 3): <code>python3 videohub_push.py videohub_load.txt 192.168.x.x</code> using the Videohub's IP address. You should see three lines ending in ACK. <a href="videohub_push.py" download>Download videohub_push.py</a></li>
+    <li><b>Without the script:</b> use the <b>Route preview</b> below as a checklist. In Blackmagic's <b>Videohub Setup</b> utility type the input and output labels, then set the routes with Videohub Control, the front panel or your control panel. (Menu names can differ between software versions.)</li>
+    <li>After loading, spot-check three or four outputs on a monitor. Compare with the preview.</li>
+  </ol>
+  </div>
+</details>
 
 <div class="card" id="loadcard">
   <h2>1 &middot; Load the table</h2>
@@ -99,6 +130,13 @@ tr td:nth-child(5){width:120px}
     <button id="btnCopyTxt">Copy load text</button>
   </div>
   <p class="small" id="dlnote" style="margin:8px 0 0">Load the .txt on the Videohub by TCP 9990 (send it line by line), or enter the labels and routes in Videohub Setup using the preview above.</p>
+</div>
+
+
+<div class="card noprint">
+  <h2>Copy back into Lucid</h2>
+  <p class="small" style="margin-top:0">Copies the current table (with ROUTED SOURCE filled in) so you can paste it over the table in your Lucid doc. In Lucid, click the first cell under the header (the one that says <b>&#9654; IN 01</b>) and paste. Check the first and last rows afterwards.</p>
+  <div class="row"><button id="btnLucid">Copy table for Lucid</button><label class="small"><input type="checkbox" id="chkHdr"> include the column header row</label><span class="small" id="lucidnote"></span></div>
 </div>
 
 <div class="card noprint">
@@ -2627,8 +2665,18 @@ $("btnCopyTxt").onclick=function(){var b=this;(navigator.clipboard?navigator.cli
 $("btnCopyLink").onclick=function(){var b=this,v=$("link").value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy link"},1500)},function(){$("link").select();b.textContent="Press Ctrl+C"})};
 $("btnPng").onclick=function(){var c=$("qrcanvas");if(!c)return;c.toBlob(function(b){var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fname("videohub_qr","png");a.click()})};
 
+
+function tsvText(hdr){
+  var t="";
+  if(hdr)t+=["\u25b6 IN","FROM (PATCH)","IN LABEL","OUT LABEL","ROUTED SOURCE","XPT","OUT \u25b6"].join("\t")+"\n";
+  state.rows.forEach(function(r,i){var p=i+1,v=r.xpt!==""&&/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
+    t+=["\u25b6 IN "+pad(p),r.from,r.inl,r.outl,v?state.rows[v-1].inl:"",r.xpt,"OUT "+pad(p)+" \u25b6"].join("\t")+"\n"});
+  return t}
+$("btnLucid").onclick=function(){var n=$("lucidnote"),txt=tsvText($("chkHdr").checked);
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){n.textContent="Copied. Paste into Lucid.";n.style.color="#1d6b33"},function(){n.textContent="Clipboard blocked by the browser.";n.style.color="#a12622"})};
+
 // test hooks
-window.__vh={parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,analyze:analyze,pack:pack,unpack:unpack};
+window.__vh={tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,analyze:analyze,pack:pack,unpack:unpack};
 
 // boot: link payload, else blank template
 (async function(){

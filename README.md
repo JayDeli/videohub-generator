@@ -12,9 +12,15 @@ Runs entirely in the browser. Nothing is uploaded or stored; the table data trav
 
 Expected columns: IN, FROM (PATCH), IN LABEL, OUT LABEL, ROUTED SOURCE, XPT, OUT. Rows are matched by the "IN 01" to "IN 40" labels. A CSV with the header `PORT,IN_PATCH,IN_LABEL,XPT_IN,OUT_LABEL` also loads.
 
+## Copy back into Lucid
+
+"Copy table for Lucid" copies the current table (ROUTED SOURCE filled in) as tab-separated text. In Lucid click the first cell under the header ("▶ IN 01") and paste.
+
 ## Output
 
 `videohub_load.txt` uses the Videohub Ethernet protocol blocks (`INPUT LABELS:`, `OUTPUT LABELS:`, `VIDEO OUTPUT ROUTING:`), 0-based, one blank line between blocks. Test on your own unit before relying on it.
+
+`videohub_push.py` sends the file to a unit: `python3 videohub_push.py videohub_load.txt 192.168.1.50` (Python 3, same network as the Videohub). Loading replaces the labels and routes on the unit.
 
 ## Host on GitHub Pages
 
