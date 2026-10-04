@@ -127,6 +127,7 @@ tr td:nth-child(5){width:120px}
   <div class="row">
     <button class="pri" id="btnTxt">Download videohub_load.txt</button>
     <button class="pri" id="btnCsv">Download CSV</button>
+    <button class="pri" id="btnPdf">Download PDF</button>
     <button id="btnCopyTxt">Copy load text</button>
   </div>
   <p class="small" id="dlnote" style="margin:8px 0 0">Load the .txt on the Videohub by TCP 9990 (send it line by line), or enter the labels and routes in Videohub Setup using the preview above.</p>
@@ -135,7 +136,7 @@ tr td:nth-child(5){width:120px}
 
 <div class="card noprint">
   <h2>Copy back into Lucid</h2>
-  <p class="small" style="margin-top:0">Copies the current table (with ROUTED SOURCE filled in) in the same format a spreadsheet uses, so Lucid can paste it into its table cells. In Lucid, click once inside the first cell under the header (the one that says <b>&#9654; IN 01</b>), then paste. <b>Check the first and last rows afterwards.</b> If Lucid drops loose text boxes instead of filling cells, undo (Ctrl+Z) and type the values directly in the table.</p>
+  <p class="small" style="margin-top:0">Optional. Copies the table so you can paste it into the Lucid router table. <b>Steps:</b> (1) click the first cell under the header (<b>&#9654; IN 01</b>), press <b>Esc</b> once so the cell is selected but not being typed in, then paste (Ctrl/Cmd+V). (2) The text will look blank because Lucid pastes it at 12pt: click the table border to select the whole table, then set <b>font size 5</b> and <b>Bold</b> in the toolbar. (3) Row shading is not carried over; re-apply it or leave it plain. Pasting while typing in a cell fills only that one cell.</p>
   <div class="row"><button id="btnLucid">Copy table for Lucid</button><label class="small"><input type="checkbox" id="chkHdr"> include the column header row</label><span class="small" id="lucidnote"></span></div>
 </div>
 
@@ -2578,7 +2579,7 @@ function render(){
   pv.innerHTML=h||"No routes yet. Type an input number in the XPT column.";
   // buttons
   var ok=A.errs.length===0;
-  ["btnTxt","btnCsv","btnCopyTxt"].forEach(function(id){$(id).disabled=!ok});
+  ["btnTxt","btnCsv","btnPdf","btnCopyTxt"].forEach(function(id){$(id).disabled=!ok});
   $("dlnote").dataset.ok=ok;
   var edited=original&&!same(original,state.rows);
   $("editnote").textContent=edited?"Edited from the original table. Downloads will be tagged _edited.":(original?"Matches the loaded table.":"");
@@ -2608,6 +2609,43 @@ function fname(base,ext){
   var edited=original&&!same(original,state.rows);
   return base+(j?"_"+j:"")+(edited?"_edited":"")+"."+ext}
 function download(name,text,mime){var b=new Blob([text],{type:mime||"text/plain"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
+
+
+/* ---------- PDF (hand-built, no library; one landscape page) ---------- */
+function pdfBytes(){
+  var W=792,H=612,M=28,RH=12.5,HH=14,cw=[50,190,130,130,130,50,56],hd=["▶ IN","FROM (PATCH)","IN LABEL","OUT LABEL","ROUTED SOURCE","XPT","OUT ▶"];
+  var c=[],pe=function(t){return String(t).replace(/[▶►]/g,">").replace(/[^\x20-\x7e]/g,"?").replace(/[\\()]/g,"\\$&")};
+  var fit=function(t,w,sz){var n=Math.max(1,Math.floor((w-6)/(sz*0.55)));t=String(t);return t.length>n?t.slice(0,n-1)+"~":t};
+  var txt=function(x,y,t,f,sz,g){c.push("BT "+(g==null?0:g)+" g /"+f+" "+sz+" Tf "+x.toFixed(1)+" "+y.toFixed(1)+" Td ("+pe(t)+") Tj ET")};
+  var rect=function(x,y,w,h,g){c.push(g+" g "+x.toFixed(1)+" "+y.toFixed(1)+" "+w.toFixed(1)+" "+h.toFixed(1)+" re f")};
+  var d=new Date(),ds=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  txt(M,H-M-8,"Videohub 40x40 Router"+(state.job?" - "+state.job:""),"F2",14);
+  txt(W-M-120,H-M-8,ds,"F1",9,0.35);
+  var top=H-M-22,x,i,j;
+  rect(M,top-HH,W-2*M,HH,0.1);x=M;
+  for(j=0;j<7;j++){txt(x+3,top-HH+4.5,hd[j],"F2",8,1);x+=cw[j]}
+  var y=top-HH;
+  state.rows.forEach(function(r,k){var p=k+1,v=/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
+    if(k%2)rect(M,y-RH,W-2*M,RH,0.92);
+    var cells=["IN "+pad(p),r.from,r.inl,r.outl,v?state.rows[v-1].inl:"",v?pad(v):"","OUT "+pad(p)],xx=M;
+    for(j=0;j<7;j++){txt(xx+3,y-RH+4,fit(cells[j],cw[j],8),(j===0||j===6||j===5)?"F2":"F1",8);xx+=cw[j]}
+    y-=RH});
+  c.push("0.6 G 0.5 w "+M+" "+(y)+" "+(W-2*M)+" "+(top-HH-y+HH)+" re S");
+  x=M;for(j=0;j<6;j++){x+=cw[j];c.push(x+" "+top+" m "+x+" "+y+" l S")}
+  txt(M,y-14,"XPT = each output takes the IN number listed. Blank XPT = unchanged. Generated at videohub.pixeltach.com","F1",8,0.35);
+  var cs=c.join("\n"),o=[];
+  o[1]="<< /Type /Catalog /Pages 2 0 R >>";
+  o[2]="<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
+  o[3]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+W+" "+H+"] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>";
+  o[4]="<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream";
+  o[5]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  o[6]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  var out="%PDF-1.4\n",off=[];
+  for(i=1;i<=6;i++){off[i]=out.length;out+=i+" 0 obj\n"+o[i]+"\nendobj\n"}
+  var xr=out.length;out+="xref\n0 7\n0000000000 65535 f \n";
+  for(i=1;i<=6;i++)out+=("0000000000"+off[i]).slice(-10)+" 00000 n \n";
+  out+="trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF";
+  var u=new Uint8Array(out.length);for(i=0;i<out.length;i++)u[i]=out.charCodeAt(i)&255;return u}
 
 /* ---------- share link (data lives in the URL fragment) ---------- */
 function payload(){return JSON.stringify({j:state.job||"",p:state.rows.map(function(r){return[r.from,r.inl,r.outl,r.xpt]})})}
@@ -2660,6 +2698,7 @@ document.addEventListener("paste",function(e){
 ["dragleave","drop"].forEach(function(ev){$("drop").addEventListener(ev,function(){this.classList.remove("hot")})});
 $("drop").addEventListener("drop",function(e){e.preventDefault();var f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f){f.text().then(function(t){load(t)})}else{var t=e.dataTransfer.getData("text/plain");if(t)load(t)}});
 $("btnTxt").onclick=function(){download(fname("videohub_load","txt"),loadText())};
+$("btnPdf").onclick=function(){download(fname("videohub_router","pdf"),pdfBytes(),"application/pdf")};
 $("btnCsv").onclick=function(){download(fname("videohub","csv"),csvText(),"text/csv")};
 $("btnCopyTxt").onclick=function(){var b=this;(navigator.clipboard?navigator.clipboard.writeText(loadText()):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy load text"},1500)},function(){b.textContent="Copy blocked - use download";})};
 $("btnCopyLink").onclick=function(){var b=this,v=$("link").value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy link"},1500)},function(){$("link").select();b.textContent="Press Ctrl+C"})};
@@ -2676,14 +2715,14 @@ function htmlTable(hdr){
   var rows=tsvText(hdr).replace(/\n$/,"").split("\n");
   return "<meta charset='utf-8'><table><tbody>"+rows.map(function(r){return"<tr>"+r.split("\t").map(function(c){return"<td>"+esc(c)+"</td>"}).join("")+"</tr>"}).join("")+"</tbody></table>"}
 $("btnLucid").onclick=function(){var n=$("lucidnote"),hdr=$("chkHdr").checked,txt=tsvText(hdr),html=htmlTable(hdr);
-  function ok(){n.textContent="Copied as a table. In Lucid click inside the first data cell, then paste.";n.style.color="#1d6b33"}
+  function ok(){n.textContent="Copied. In Lucid: click first data cell, press Esc, paste, then set the whole table to font size 5 + Bold.";n.style.color="#1d6b33"}
   function bad(){n.textContent="Clipboard blocked by the browser.";n.style.color="#a12622"}
   if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
     navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([txt],{type:"text/plain"})})]).then(ok,function(){(navigator.clipboard.writeText(txt)).then(ok,bad)})}
   else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,bad)}else bad()};
 
 // test hooks
-window.__vh={htmlTable:htmlTable,tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,analyze:analyze,pack:pack,unpack:unpack};
+window.__vh={htmlTable:htmlTable,tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,pdfBytes:pdfBytes,analyze:analyze,pack:pack,unpack:unpack};
 
 // boot: link payload, else blank template
 (async function(){

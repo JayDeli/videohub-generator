@@ -14,7 +14,7 @@ Expected columns: IN, FROM (PATCH), IN LABEL, OUT LABEL, ROUTED SOURCE, XPT, OUT
 
 ## Copy back into Lucid
 
-"Copy table for Lucid" copies the current table (ROUTED SOURCE filled in) as tab-separated text. In Lucid click the first cell under the header ("▶ IN 01") and paste.
+"Copy table for Lucid" copies the current table (ROUTED SOURCE filled in) as a table. In Lucid click the first cell under the header ("▶ IN 01"), press Esc, paste, then select the whole table and set font size 5 + Bold (Lucid pastes at 12pt, so it looks blank until you do; row shading is not carried over).
 
 ## Output
 
