@@ -3,97 +3,158 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Videohub File Generator</title>
+<title>Videohub File Generator | PixelTach</title>
+<meta name="description" content="Make Blackmagic Videohub label sets and route files from a table. Check or back up a router by pasting its report. Runs in your browser; nothing is uploaded.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem('edid-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);else if(matchMedia('(prefers-color-scheme: light)').matches)document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <style>
-:root{--ink:#14171c;--mut:#5b6470;--line:#aeb4bc;--bar:#23272e;--in1:#ffffff;--in2:#e9edf5;--out1:#f4f8ff;--out2:#dde9fa;--x1:#fff7dc;--x2:#ffefc2;--blue:#2f4f7f;--err:#d9534f;--warn:#e0b030;--ok:#3d9b57}
+/* PixelTach look: softened dark/light, LED dot-grid background, green/amber/red status (same tokens as pixeltach.com). */
+:root,:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#1b1c1f;--dots:rgba(255,255,255,.05);--panel:#232428;--panel2:#2a2b30;--line:#34363c;--line-soft:#2c2d32;
+  --text:#e8e8e4;--muted:#9a9ca3;--faint:#5d5f66;--blue:#3aa0ff;--blue-ink:#06121f;--green:#2bff6e;--amber:#ffc21a;--red:#ff4a4a;
+  --in-tint:rgba(58,160,255,.07);--out-tint:rgba(43,255,110,.05);--x-tint:rgba(255,194,26,.08);--warn-bg:rgba(255,194,26,.14);--err-bg:rgba(255,74,74,.16);--hot:rgba(58,160,255,.1)}
+:root[data-theme="light"]{color-scheme:light;
+  --bg:#e7e7e3;--dots:rgba(0,0,0,.07);--panel:#f6f6f3;--panel2:#ffffff;--line:#d2d2cd;--line-soft:#e3e3df;
+  --text:#1b1c1f;--muted:#5f6168;--faint:#9a9ca3;--blue:#1f7fd6;--blue-ink:#ffffff;--green:#12823c;--amber:#9a6200;--red:#c62828;
+  --in-tint:rgba(31,127,214,.07);--out-tint:rgba(18,130,60,.06);--x-tint:rgba(154,98,0,.09);--warn-bg:rgba(154,98,0,.13);--err-bg:rgba(198,40,40,.12);--hot:rgba(31,127,214,.09)}
 *{box-sizing:border-box}
-body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#f3f5f8}
-header{background:var(--bar);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-header h1{margin:0;font-size:17px}
-header span{color:#9aa3af;font-size:12px}
-main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
-.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:12px}
-h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
-#drop{border:2px dashed var(--line);border-radius:8px;padding:14px;text-align:center;color:var(--mut);background:#fafbfc}
-#drop strong{color:var(--ink)}
-#drop.hot{border-color:var(--blue);background:#eef3fb}
-textarea{width:100%;height:70px;font:12px monospace;margin-top:8px}
+html,body{margin:0}
+body{font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;color:var(--text);background:var(--bg) radial-gradient(var(--dots) 1px,transparent 1.2px) 0 0/8px 8px;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--blue)}
+.mono,code,textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.small{font-size:12px;color:var(--muted)}
+.ok{color:var(--green)}.warn{color:var(--amber)}.err{color:var(--red)}
+.spacer{flex:1}
+.hide{display:none!important}
+
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 88%,transparent);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+header .brand{display:block;line-height:0}
+header h1{margin:0;font-size:15px;font-weight:700;letter-spacing:.2px}
+header .tag{color:var(--muted);font-size:12px}
+header a.home{color:var(--muted);text-decoration:none;font-size:12px}
+header a.home:hover{color:var(--blue)}
+/* logo rules as on pixeltach.com: straight on the header in dark mode, on a grey LED panel in light mode */
+.logo-panel{display:none}.logo-panel-bg{fill:#303237}.logo-tile{fill:#0c0d0f}
+:root[data-theme="light"] .logo-panel{display:inline}:root[data-theme="light"] .logo-tile{fill:#303237}
+
+main{max-width:1180px;margin:0 auto;padding:16px 20px 60px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+h2 small{text-transform:none;letter-spacing:0;font-weight:400;margin-left:8px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-button,.btn{font:inherit;font-weight:600;border-radius:6px;border:1px solid var(--blue);background:#fff;color:var(--blue);padding:8px 14px;cursor:pointer}
-button.pri{background:var(--blue);color:#fff}
+.row.top{align-items:flex-start}
+
+button,.btn{font-weight:600;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:6px 12px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--muted)}
+button.pri{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+button.link{background:none;border:none;color:var(--blue);padding:4px 0}
 button:disabled{opacity:.4;cursor:not-allowed}
-input[type=text]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:4px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+input[type=text],input[type=number],select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 25%,transparent)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input[type=number]{width:78px}
+select{max-width:100%}
+textarea{width:100%;height:84px;margin-top:8px;resize:vertical}
+label.f{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+
+#drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted)}
+#drop strong{color:var(--text)}
+#drop.hot{border-color:var(--blue);background:var(--hot)}
+details>summary{cursor:pointer}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{padding:4px 12px;border-radius:14px;font-weight:700;border:1px solid}
-.c-ok{background:#dff3e3;border-color:#6bb27a;color:#1d6b33}
-.c-err{background:#fde3e3;border-color:var(--err);color:#a12622}
-.c-warn{background:#fff3cd;border-color:var(--warn);color:#8a6500}
-.c-mut{background:#eef0f3;border-color:var(--line);color:var(--mut)}
+.chip{padding:3px 12px;border-radius:14px;font-weight:700;border:1px solid;font-size:12px}
+.c-ok{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,transparent);background:color-mix(in srgb,var(--green) 10%,transparent)}
+.c-err{color:var(--red);border-color:color-mix(in srgb,var(--red) 55%,transparent);background:var(--err-bg)}
+.c-warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 55%,transparent);background:var(--warn-bg)}
+.c-mut{color:var(--muted);border-color:var(--line);background:var(--panel2)}
 #msgs{margin-top:10px}
-.msg{display:flex;gap:10px;padding:5px 8px;border:1px solid #e1e4e8;border-left-width:6px;background:#fafafa;margin-bottom:4px;font-size:13px}
+.msg{display:flex;gap:10px;padding:5px 8px;border:1px solid var(--line-soft);border-left-width:4px;border-radius:4px;background:var(--panel2);margin-bottom:4px;font-size:12px}
 .msg b{min-width:44px;font-size:11px;padding-top:1px}
-.msg.e{border-left-color:var(--err)}.msg.e b{color:var(--err)}
-.msg.w{border-left-color:var(--warn)}.msg.w b{color:#8a6500}
-.gridwrap{overflow:auto;border:1px solid var(--line)}
+.msg.e{border-left-color:var(--red)}.msg.e b{color:var(--red)}
+.msg.w{border-left-color:var(--amber)}.msg.w b{color:var(--amber)}
+.msg.i{border-left-color:var(--blue)}.msg.i b{color:var(--blue)}
+
+.gridwrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:640px}
 table{border-collapse:collapse;width:100%;min-width:760px;font-weight:600}
-th,td{border:1px solid var(--line);padding:0;text-align:center;height:26px}
-th{background:#c9d0da;font-size:12px;padding:4px}
-th.i{background:#9aa3af}th.o{background:#7f9fd0}
-tr.band th.bi{background:#c9d0da}tr.band th.bo{background:#9fc0ee}
-td.i{background:var(--in1)}tr.alt td.i{background:var(--in2)}
-td.o{background:var(--out1)}tr.alt td.o{background:var(--out2)}
-td.x{background:var(--x1)}tr.alt td.x{background:var(--x2)}
+th,td{border:1px solid var(--line-soft);padding:0;text-align:center;height:26px;white-space:nowrap}
+th{background:var(--panel2);font-size:11px;padding:4px;color:var(--muted);letter-spacing:.05em;position:sticky;z-index:2}
+thead tr:nth-child(1) th{top:0}thead tr:nth-child(2) th{top:26px}
+th.i{color:var(--blue)}th.o{color:var(--green)}
+tr.band th{letter-spacing:.08em}
+td.i{background:var(--in-tint)}td.o{background:var(--out-tint)}td.x{background:var(--x-tint)}
+tr.alt td{filter:brightness(1.12)}
+:root[data-theme="light"] tr.alt td{filter:brightness(.97)}
 td.grp-l,th.grp-l{border-left:3px solid var(--blue)}
 td.grp-r,th.grp-r{border-right:3px solid var(--blue)}
-td input{width:100%;height:100%;border:0;background:transparent;font:inherit;text-align:center;padding:4px;color:var(--ink)}
-td input:focus{outline:2px solid var(--blue);outline-offset:-2px;background:#fff}
-td.bad input{background:#fde3e3}
-td.warnc input{background:#fff3cd}
-td.src{color:var(--mut);font-weight:600}
-th,td{white-space:nowrap}
-tr td:nth-child(1),tr td:nth-child(7){width:84px}
-tr td:nth-child(6){width:64px}
-tr td:nth-child(5){width:120px}
-.small{font-size:12px;color:var(--mut)}
-#qr canvas,#qr img{image-rendering:pixelated}
+td input{width:100%;height:100%;border:0;border-radius:0;background:transparent;font:inherit;text-align:center;padding:4px;color:var(--text)}
+td input:focus{outline:2px solid var(--blue);outline-offset:-2px;background:var(--panel2);box-shadow:none}
+td.bad input{background:var(--err-bg)}td.warnc input{background:var(--warn-bg)}
+td.src{color:var(--muted)}
+td.na{color:var(--faint);background:transparent}
+tr td:nth-child(1),tr td:nth-child(7){width:84px}tr td:nth-child(6){width:64px}tr td:nth-child(5){width:120px}
+
+.pv div{padding:3px 6px}.pv div:nth-child(even){background:var(--panel2)}
+.pv .arr{color:var(--blue)}
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.step{border:1px solid var(--line-soft);border-radius:8px;padding:12px}
+.step h3{margin:0 0 6px;font-size:13px}
+.step p{margin:0 0 8px}
+.cmd{display:flex;gap:8px;align-items:flex-start;margin-top:6px}
+.cmd code{flex:1;min-width:0;padding:6px 8px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cmd button{flex:none}
+.diff{margin-top:8px;min-width:0;font-weight:400}
+.diff td,.diff th{text-align:left;padding:3px 8px;height:auto}
+.diff th{position:static}
+
+#qr canvas,#qr img{image-rendering:pixelated;border-radius:6px}
 #qrbox{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .linkbox{flex:1;min-width:240px}
-.linkbox input{width:100%;font:11px monospace}
-.hide{display:none}
-@media print{header button,#drop,.noprint{display:none}}
-
+.linkbox input{width:100%;font:11px ui-monospace,Menlo,monospace}
 .howto h3{font-size:13px;margin:14px 0 4px;color:var(--blue)}
-.howto ol{margin:4px 0 0;padding-left:20px}.howto li{margin-bottom:4px}
-.howto code{background:#eef0f3;padding:1px 5px;border-radius:3px;font-size:12px}
+.howto ol,.howto ul{margin:4px 0 0;padding-left:20px}.howto li{margin-bottom:4px}
+.howto code{background:var(--panel2);border:1px solid var(--line-soft);padding:1px 5px;border-radius:3px}
+footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--faint);font-size:12px}
+@media print{header,#drop,.noprint{display:none}}
+@media(max-width:700px){header{position:static;padding:8px 14px}header .tag{display:none}main{padding:12px 12px 40px}}
 </style>
 </head>
 <body>
-<header><h1>Videohub File Generator</h1><span>Blackmagic Videohub 40x40 &middot; runs entirely in your browser, nothing is uploaded</span></header>
+<header>
+  <a class="brand" href="https://pixeltach.com/" title="PixelTach home"><svg class="logo" role="img" aria-label="PixelTach" viewBox="-11 -11 588.4 86.8" height="30" width="203.3640552995392"><defs><filter id="pt-halo-word" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="7.7"></feGaussianBlur></filter><filter id="pt-halo-icon" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.02"></feGaussianBlur></filter></defs><g class="logo-panel"><rect x="-11" y="-11" width="588.4" height="86.8" rx="12.1" class="logo-panel-bg"></rect><rect x="126.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="170.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="181.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="192.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="203.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="225.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="236.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="247.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="258.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="269.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="379.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="423.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="445.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="522.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="533.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="544.4" y="0" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="93.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="104.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="115.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="148.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="170.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="181.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="192.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="203.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="225.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="236.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="247.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="258.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="269.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="313.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="324.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="346.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="357.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="390.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="401.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="412.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="456.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="467.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="478.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="489.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="522.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="533.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="544.4" y="11" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="93.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="104.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="115.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="181.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="192.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="225.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="269.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="313.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="324.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="346.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="357.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="390.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="401.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="412.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="456.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="467.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="478.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="489.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="22" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="126.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="170.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="203.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="236.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="247.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="313.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="324.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="346.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="357.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="456.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="467.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="478.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="489.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="522.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="533.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="544.4" y="33" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="93.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="104.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="115.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="126.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="170.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="203.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="258.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="269.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="313.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="324.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="346.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="357.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="390.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="401.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="412.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="456.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="467.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="478.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="489.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="522.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="533.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="544.4" y="44" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="93.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="104.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="115.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="126.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="137.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="159.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="181.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="192.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="214.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="225.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="280.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="302.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="313.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="324.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="346.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="357.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="368.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="390.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="401.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="412.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="434.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="445.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="500.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="522.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="533.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect><rect x="544.4" y="55" width="9.8" height="9.8" rx="2.94" fill="rgba(255,255,255,0.05)"></rect></g><rect x="0" y="0" width="64.8" height="64.8" rx="15.12" class="logo-tile"></rect><rect x="2.57" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="2.57" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="6.89" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="11.21" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="15.53" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="19.85" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="24.17" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="28.49" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="32.81" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="37.13" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="41.45" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="45.77" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="50.09" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="54.41" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="2.57" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="6.89" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="11.21" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="15.53" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="19.85" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="24.17" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="28.49" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="32.81" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="37.13" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="41.45" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="45.77" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="50.09" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="54.41" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><rect x="58.73" y="58.73" width="3.5" height="3.5" rx="1.17" fill="rgba(255,255,255,0.045)"></rect><g filter="url(#pt-halo-icon)" opacity="0.35"><rect x="19.66" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="23.98" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="28.3" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="32.62" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="36.94" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="41.26" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="19.66" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="23.98" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="41.26" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="45.58" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="41.26" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="49.9" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="36.94" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="36.94" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="36.94" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="45.58" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="28.3" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="28.3" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="32.62" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="28.3" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="32.62" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="49.9" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="54.22" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="54.22" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="41.26" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="45.58" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="45.58" y="49.9" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect></g><rect x="19.66" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="23.98" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="28.3" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="32.62" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="36.94" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="41.26" y="11.02" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="19.66" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="23.98" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="41.26" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="45.58" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="6.7" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="41.26" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="11.02" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="15.34" y="49.9" width="3.89" height="3.89" rx="1.17" fill="#2bff6e"></rect><rect x="36.94" y="15.34" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="36.94" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="36.94" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="32.62" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#f4f4f0"></rect><rect x="45.58" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="19.66" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="23.98" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="49.9" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#ffc21a"></rect><rect x="28.3" y="28.3" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="28.3" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="32.62" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="28.3" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="32.62" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#3aa0ff"></rect><rect x="49.9" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="54.22" y="32.62" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="54.22" y="36.94" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="41.26" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="45.58" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="49.9" y="45.58" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><rect x="45.58" y="49.9" width="3.89" height="3.89" rx="1.17" fill="#ff4a4a"></rect><g filter="url(#pt-halo-word)" opacity="0.35"><rect x="82.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="93.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="104.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="115.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="126.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="126.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="93.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="104.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="115.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="170.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="203.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="181.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="192.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="181.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="192.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="170.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="203.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="225.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="269.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="225.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="269.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#ff4a4a"></rect><rect x="313.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="324.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="346.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="357.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="390.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="401.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="412.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="390.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="401.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="412.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="456.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="467.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="478.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="489.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="456.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="467.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="478.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="489.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="522.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="533.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="544.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect></g><rect x="82.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="93.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="104.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="115.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="126.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="126.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="93.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="104.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="115.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="82.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="170.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="203.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="181.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="192.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="181.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="192.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="170.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="203.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="225.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="269.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="225.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="236.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="247.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="258.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="269.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="291.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#f4f4f0"></rect><rect x="148.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#ff4a4a"></rect><rect x="313.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="324.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="346.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="357.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="335.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="390.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="401.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="412.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="390.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="401.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="412.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="379.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="423.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="456.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="467.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="478.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="489.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="445.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="456.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="467.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="478.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="489.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="0" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="11" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="522.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="533.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="544.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="22" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="33" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="44" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="511.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect><rect x="555.4" y="55" width="9.8" height="9.8" rx="2.94" fill="#3aa0ff"></rect></svg></a>
+  <h1>Videohub File Generator</h1>
+  <span class="tag">Blackmagic Videohub labels &amp; routes &middot; runs entirely in your browser, nothing is uploaded</span>
+  <span class="spacer"></span>
+  <a class="home" href="https://pixeltach.com/">pixeltach.com</a>
+  <button id="btnTheme" aria-label="Switch theme" title="Theme">&#9728;</button>
+</header>
 <main>
 
 <details class="card" id="howto" open>
-  <summary style="cursor:pointer;font-weight:700;font-size:15px">How to use this &mdash; fill the table, make the files, load the Videohub</summary>
+  <summary style="font-weight:700;font-size:15px">How to use this &mdash; fill the table, make the files, load the Videohub</summary>
   <div class="howto">
   <h3>A &middot; Fill in the table (in Lucid, or right here)</h3>
   <ol>
-    <li><b>IN LABEL</b>: name each source feeding the router (what is on that input). Max 12 characters, keep each name unique. Leave unused inputs as <code>IN 15</code> etc.</li>
-    <li><b>FROM (PATCH)</b>: where that input is cabled from (for example <code>AQ 1.1</code>). Notes for the tech only; it does not go to the router.</li>
-    <li><b>OUT LABEL</b>: name each destination (what that output feeds). Max 12 characters, unique. Leave unused outputs as <code>OUT 15</code> etc.</li>
-    <li><b>XPT</b>: the <b>input number</b> (1&ndash;40) that this output should take. Blank = leave that output unchanged. <b>ROUTED SOURCE</b> is only a reading aid, so it can be left blank; this page works it out from XPT.</li>
-    <li>Rows are ports: row 05 on the left is <i>input 5</i>, row 05 on the right is <i>output 5</i>. They are separate, not connected to each other.</li>
+    <li><b>IN LABEL</b>: name each source feeding the router (what is on that input). Keep each name unique. Leave unused inputs as <code>IN 15</code> etc.</li>
+    <li><b>FROM (PATCH)</b>: where that input is cabled from (for example <code>SW 1.1</code>). Notes for the tech only; it does not go to the router.</li>
+    <li><b>OUT LABEL</b>: name each destination (what that output feeds). Keep each name unique. Leave unused outputs as <code>OUT 15</code> etc.</li>
+    <li><b>XPT</b>: the <b>input number</b> that this output should take. Blank = leave that output unchanged. <b>ROUTED SOURCE</b> is only a reading aid, so it can be left blank; this page works it out from XPT.</li>
+    <li>Rows are ports: row 05 on the left is <i>input 5</i>, row 05 on the right is <i>output 5</i>. They are separate, not connected to each other. Pick your router's size in step 1 (10, 20, 40, 80, 120, the Minis, or any custom size).</li>
   </ol>
   <h3>B &middot; Make the files</h3>
   <ol>
-    <li>In Lucid select the table cells, copy, then press <b>Ctrl+V</b> (Cmd+V) on this page. Or open the link someone sent you and the table is already loaded.</li>
+    <li>In Lucid select the table cells, copy, then press <b>Ctrl+V</b> (Cmd+V) on this page. You can also paste a <b>Videohub Setup label set</b> or a <b>report copied from the Videohub itself</b>; the page works out the size. Or open the link someone sent you and the table is already loaded.</li>
     <li>Fix anything marked <b>ERROR</b> (red) before downloading. Warnings are advice only. Edit directly in the grid if something is wrong; the preview shows exactly what the router will do.</li>
-    <li>Click <b>Download videohub_load.txt</b> (this is the file that loads the router) and the CSV if you want a copy of the table.</li>
+    <li>Download the <b>label set</b> (for Videohub Setup, labels only) or <b>videohub_load.txt</b> (labels and routes, sent over the network).</li>
   </ol>
   <h3>C &middot; Load it onto the Videohub</h3>
-  <p class="small" style="margin-top:0"><b>Loading replaces the labels and routes on the unit.</b> Write down or screenshot what is on it now, and try the file on a bench unit before show day.</p>
+  <p class="small" style="margin-top:0"><b>Loading replaces labels (and routes) on the unit.</b> Use <b>step 5</b> to back up what is on it first, and try the file on a bench unit before show day.</p>
   <ol>
-    <li><b>Easiest:</b> put your computer on the same network as the Videohub and run the small helper script (needs Python 3): <code>python3 videohub_push.py videohub_load.txt 192.168.x.x</code> using the Videohub's IP address. You should see three lines ending in ACK. <a href="videohub_push.py" download>Download videohub_push.py</a></li>
-    <li><b>Without the script:</b> use the <b>Route preview</b> below as a checklist. In Blackmagic's <b>Videohub Setup</b> utility type the input and output labels, then set the routes with Videohub Control, the front panel or your control panel. (Menu names can differ between software versions.)</li>
-    <li>After loading, spot-check three or four outputs on a monitor. Compare with the preview.</li>
+    <li><b>Labels only, in Videohub Setup:</b> open Blackmagic <b>Videohub Setup</b>, click <b>Settings</b> (the gear icon) and choose <b>load label set</b>, then pick the label set file. A label set holds labels only, so set the routes with route 2 below, Videohub Control, the front panel or your control panel. (Menu names can differ between software versions.)</li>
+    <li><b>Labels and routes, over the network:</b> put your computer on the same network as the Videohub and run the small helper script (needs Python 3): <code>python3 videohub_push.py videohub_load.txt 192.168.x.x</code> using the Videohub's IP address. You should see lines ending in ACK. <a href="videohub_push.py" download>Download videohub_push.py</a>. Step 5 also shows a one-line terminal command that needs no Python.</li>
+    <li><b>By hand:</b> use the <b>Route preview</b> below as a checklist.</li>
+    <li>After loading, use <b>step 5</b> to read the router back and compare it with the table, then spot-check three or four outputs on a monitor.</li>
   </ol>
   </div>
 </details>
@@ -101,11 +162,24 @@ tr td:nth-child(5){width:120px}
 <div class="card" id="loadcard">
   <h2>1 &middot; Load the table</h2>
   <div id="drop" tabindex="0"><strong>Copy the router table in Lucid, then press Ctrl+V (Cmd+V) anywhere on this page.</strong><br>
-    <span class="small">Also accepts the Videohub CSV. A link from someone else loads automatically.</span>
+    <span class="small">Also accepts a Videohub Setup label set, a report copied from the Videohub, or this page's CSV. A link from someone else loads automatically.</span>
     <div class="row" style="justify-content:center;margin-top:8px"><button id="btnPasteClip">Paste from clipboard</button><button id="btnBlank">Start blank</button></div>
-    <details style="margin-top:8px"><summary class="small" style="cursor:pointer">Paste didn't work? Paste text here instead</summary><textarea id="ta" placeholder="Paste the copied table or CSV text here"></textarea><button id="btnTa" style="margin-top:6px">Use this text</button></details>
+    <details style="margin-top:8px"><summary class="small">Paste didn't work? Paste text here instead</summary><textarea id="ta" placeholder="Paste the copied table, label set, hub report or CSV text here"></textarea><button id="btnTa" style="margin-top:6px">Use this text</button></details>
   </div>
-  <div class="row" style="margin-top:10px"><label>Job / show name <input type="text" id="job" size="28" placeholder="optional"></label><span class="small" id="srcnote"></span></div>
+  <div class="row" style="margin-top:12px">
+    <label class="f">Router size
+      <select id="size" aria-label="Router size"></select></label>
+    <span id="customSize" class="row hide">
+      <label class="f">inputs <input type="number" id="cIns" min="1" max="288" value="40"></label>
+      <label class="f">outputs <input type="number" id="cOuts" min="1" max="288" value="40"></label>
+    </span>
+    <label class="f">Job / show name <input type="text" id="job" size="26" placeholder="optional"></label>
+    <label class="f" title="Labels longer than this get a warning. Blackmagic's protocol document states no limit; 18 is a working limit from field use.">Label limit <input type="number" id="limit" min="4" max="64" value="18"> chars</label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label class="f"><input type="checkbox" id="chkBlank" checked> Leave unused ports (still named <code>IN 15</code> / <code>OUT 15</code>) blank, so the router keeps what it has</label>
+  </div>
+  <div class="small" id="srcnote" style="margin-top:6px"></div>
 </div>
 
 <div class="card">
@@ -118,26 +192,49 @@ tr td:nth-child(5){width:120px}
 </div>
 
 <div class="card">
-  <h2>3 &middot; Route preview (what the Videohub will do)</h2>
-  <div id="preview" class="small"></div>
+  <h2>3 &middot; Route preview <small>what the Videohub will do</small></h2>
+  <div id="preview" class="small pv"></div>
 </div>
 
 <div class="card">
   <h2>4 &middot; Get the files</h2>
   <div class="row">
+    <button class="pri" id="btnSet">Download label set</button>
     <button class="pri" id="btnTxt">Download videohub_load.txt</button>
     <button class="pri" id="btnCsv">Download CSV</button>
     <button class="pri" id="btnPdf">Download PDF</button>
     <button id="btnCopyTxt">Copy load text</button>
   </div>
-  <p class="small" id="dlnote" style="margin:8px 0 0">Load the .txt on the Videohub by TCP 9990 (send it line by line), or enter the labels and routes in Videohub Setup using the preview above.</p>
+  <p class="small" id="dlnote" style="margin:8px 0 0"><b>Label set</b> (<span class="mono" id="setName"></span>): load it in Videohub Setup, Settings (gear icon) &rarr; load label set. Labels only. <b>videohub_load.txt</b>: labels and routes, sent over the network on TCP port 9990 with the helper script or the command in step 5. Commas in labels become spaces and accents are dropped in the label set (its columns are comma-separated and plain ASCII).</p>
 </div>
 
+<div class="card noprint">
+  <h2>5 &middot; Check or back up the router <small>read it back and compare</small></h2>
+  <div class="setup">
+    <div class="step">
+      <h3>Read the router</h3>
+      <p class="small">A web page can't open a raw network connection, so the router's report goes through your computer. Enter the router's address, run the command, then paste the file's contents below.</p>
+      <label class="f">Router address <input type="text" id="addr" size="18" placeholder="192.168.1.50" spellcheck="false"></label>
+      <div id="cmds"></div>
+    </div>
+    <div class="step">
+      <h3>Paste the report</h3>
+      <textarea id="rep" placeholder="PROTOCOL PREAMBLE:&#10;Version: 2.3&#10;&#10;VIDEOHUB DEVICE: &hellip;"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="pri" id="btnCompare">Compare with the table</button>
+        <button id="btnBackup">Download backup</button>
+        <button id="btnIntoTable">Load into the table</button>
+      </div>
+      <p class="small" style="margin:8px 0 0">The backup is a load file that puts the router back as it was when you read it.</p>
+    </div>
+  </div>
+  <div id="result" style="margin-top:10px"></div>
+</div>
 
 <div class="card noprint">
   <h2>Copy back into Lucid</h2>
-  <p class="small" style="margin-top:0">Optional. Copies the table so you can paste it into the Lucid router table. <b>Steps:</b> (1) click the first cell under the header (<b>&#9654; IN 01</b>), press <b>Esc</b> once so the cell is selected but not being typed in, then paste (Ctrl/Cmd+V). (2) The text will look blank because Lucid pastes it at 12pt: click the table border to select the whole table, then set <b>font size 5</b> and <b>Bold</b> in the toolbar. (3) Row shading is not carried over; re-apply it or leave it plain. Pasting while typing in a cell fills only that one cell.</p>
-  <div class="row"><button id="btnLucid">Copy table for Lucid</button><label class="small"><input type="checkbox" id="chkHdr"> include the column header row</label><span class="small" id="lucidnote"></span></div>
+  <p class="small" style="margin-top:0">Optional. Copies the table so you can paste it into the Lucid router table. <b>Steps:</b> (1) click the first cell under the header (<b>&#9654; IN 01</b>), press <b>Esc</b> once so the cell is selected but not being typed in, then paste (Ctrl/Cmd+V). (2) The text will look blank because Lucid pastes it at 12pt: click the table border to select the whole table, then set font size 5 and Bold in the toolbar. (3) Row shading is not carried over; re-apply it or leave it plain. Pasting while typing in a cell fills only that one cell.</p>
+  <div class="row"><button id="btnLucid">Copy table for Lucid</button><label class="f"><input type="checkbox" id="chkHdr"> include the column header row</label><span class="small" id="lucidnote"></span></div>
 </div>
 
 <div class="card noprint">
@@ -145,7 +242,7 @@ tr td:nth-child(5){width:120px}
   <div id="qrbox">
     <div id="qr"></div>
     <div class="linkbox">
-      <p class="small" style="margin-top:0">Anyone opening this link gets this table already loaded, with the same checks and downloads. The data travels inside the link; nothing is stored on a server.</p>
+      <p class="small" style="margin-top:0">Anyone opening this link gets this table already loaded, with the same checks and downloads. The data travels inside the link; nothing is stored on a server. The router address above is never put in the link.</p>
       <input type="text" id="link" readonly>
       <div class="row" style="margin-top:8px"><button id="btnCopyLink">Copy link</button><button id="btnPng">Download QR image</button><span class="small" id="linknote"></span></div>
     </div>
@@ -153,6 +250,8 @@ tr td:nth-child(5){width:120px}
 </div>
 
 </main>
+<footer>Part of <a href="https://pixeltach.com/">PixelTach</a>. Includes <code>qrcode-generator</code> by Kazuhiko Arase (MIT). Not affiliated with or endorsed by Blackmagic Design.</footer>
+
 <script>
 //---------------------------------------------------------------------
 //
@@ -2453,139 +2552,208 @@ var qrcode = function() {
 }));
 
 </script>
+
 <script>
 (function(){
 "use strict";
-var N=40, MAXLBL=12;
+/* Sizes: [inputs, outputs, name]. Same list as the PixelTach Signal Flow Planner. */
+var STD=[[4,2,"Videohub Mini 4x2 12G"],[6,2,"Videohub Mini 6x2 12G"],[8,4,"Videohub Mini 8x4 12G"],[10,10,"Videohub 10x10 12G"],[12,12,"Smart Videohub CleanSwitch 12x12"],[20,20,"Videohub 20x20 12G"],[40,40,"Videohub 40x40"],[80,80,"Videohub 80x80 12G"],[120,120,"Videohub 120x120 12G"]];
+var MAXP=288, DEFAULT_LIMIT=18, PORT=9990;
 var $=function(id){return document.getElementById(id)};
-var state={job:"",rows:blankRows()}, original=null;
+var state={job:"",ins:40,outs:40,limit:DEFAULT_LIMIT,blank:true,rows:blankRows(40,40)}, original=null, lastFile={};
 
-function blankRows(){var r=[];for(var i=1;i<=N;i++)r.push({from:"",inl:"IN "+pad(i),outl:"OUT "+pad(i),xpt:""});return r}
 function pad(n){return (n<10?"0":"")+n}
+function nrows(ins,outs){return Math.max(ins,outs)}
+function blankRows(ins,outs){var r=[],n=nrows(ins,outs);for(var i=1;i<=n;i++)r.push({from:"",inl:i<=ins?"IN "+pad(i):"",outl:i<=outs?"OUT "+pad(i):"",xpt:""});return r}
 function clone(rows){return rows.map(function(r){return{from:r.from,inl:r.inl,outl:r.outl,xpt:r.xpt}})}
-function same(a,b){if(!a||!b)return false;for(var i=0;i<N;i++){var x=a[i],y=b[i];if(x.from!==y.from||x.inl!==y.inl||x.outl!==y.outl||x.xpt!==y.xpt)return false}return true}
-
-/* ---------- parsing pasted text ---------- */
+function snap(){return{ins:state.ins,outs:state.outs,rows:clone(state.rows)}}
+function same(a,b){if(!a||!b||a.ins!==b.ins||a.outs!==b.outs||a.rows.length!==b.rows.length)return false;for(var i=0;i<a.rows.length;i++){var x=a.rows[i],y=b.rows[i];if(x.from!==y.from||x.inl!==y.inl||x.outl!==y.outl||x.xpt!==y.xpt)return false}return true}
+function isPhIn(s){return /^IN \d+$/i.test(String(s).trim())}
+function isPhOut(s){return /^OUT \d+$/i.test(String(s).trim())}
+function validX(x){return x!==""&&/^\d+$/.test(x)&&+x>=1&&+x<=state.ins}
 function stripCell(s){return (s==null?"":String(s)).replace(/ /g," ").replace(/^["']|["']$/g,"").trim()}
-function portOf(s){var m=/^[▶►>\s]*IN\s*0*(\d{1,2})\s*$/i.exec(s);return m?parseInt(m[1],10):0}
+function portOf(s){var m=/^[▶►>\s]*IN\s*0*(\d{1,3})\s*$/i.exec(s);var p=m?parseInt(m[1],10):0;return p>=1&&p<=MAXP?p:0}
 function xptOf(s){var m=/(\d{1,3})/.exec(s||"");return m?String(parseInt(m[1],10)):""}
 function splitCSV(line){var out=[],cur="",q=false;for(var i=0;i<line.length;i++){var c=line[i];if(q){if(c==='"'){if(line[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}else if(c==='"')q=true;else if(c===","){out.push(cur);cur=""}else cur+=c}out.push(cur);return out}
+function snapUp(n){var s=[10,12,20,40,80,120];for(var i=0;i<s.length;i++)if(s[i]>=n)return s[i];return Math.min(MAXP,n)}
+function clamp(n){n=parseInt(n,10);return isNaN(n)?1:Math.max(1,Math.min(MAXP,n))}
 
+/* ---------- label cleaning (label-set file: comma-separated, plain ASCII, as in files saved by Videohub Setup) ---------- */
+function cleanLabel(raw){
+  var flags=[],s=String(raw).replace(/[\r\n\t]+/g," ");
+  if(s.indexOf(",")>=0){flags.push("comma");s=s.replace(/,/g," ")}
+  s=s.normalize("NFD").replace(/[̀-ͯ]/g,"");
+  if(/[^\x20-\x7e]/.test(s)){flags.push("ascii");s=s.replace(/[^\x20-\x7e]/g,"?")}
+  return{text:s.replace(/ {2,}/g," ").trim(),flags:flags}}
+
+/* ---------- Videohub reports (what the router sends on TCP 9990) ---------- */
+function parseHub(text){
+  var h={ok:false,model:"",inputs:0,outputs:0,inputLabels:{},outputLabels:{},routes:{}},block="",any=false;
+  String(text).replace(/\r/g,"").split("\n").forEach(function(line){
+    if(!line.trim()){block="";return}
+    var hd=/^([A-Z][A-Z ]*):\s*$/.exec(line);
+    if(hd){block=hd[1];any=any||/^(PROTOCOL PREAMBLE|VIDEOHUB DEVICE|INPUT LABELS|OUTPUT LABELS|VIDEO OUTPUT ROUTING)$/.test(block);return}
+    if(block==="VIDEOHUB DEVICE"){var kv=/^([^:]+):\s*(.*)$/.exec(line);if(!kv)return;var k=kv[1].trim().toLowerCase(),v=kv[2].trim();
+      if(k==="model name")h.model=v;if(k==="video inputs"&&/^\d+$/.test(v))h.inputs=+v;if(k==="video outputs"&&/^\d+$/.test(v))h.outputs=+v;return}
+    var it=/^(\d+) (.*)$/.exec(line)||/^(\d+)$/.exec(line);if(!it)return;var n=+it[1],rest=it[2]||"";
+    if(block==="INPUT LABELS")h.inputLabels[n]=rest;
+    else if(block==="OUTPUT LABELS")h.outputLabels[n]=rest;
+    else if(block==="VIDEO OUTPUT ROUTING"&&/^\d+$/.test(rest))h.routes[n]=+rest});
+  var top=function(o){var m=-1;Object.keys(o).forEach(function(k){if(+k>m)m=+k});return m+1};
+  if(!h.inputs)h.inputs=top(h.inputLabels);
+  if(!h.outputs)h.outputs=top(h.outputLabels);
+  h.ok=any&&h.inputs>0&&h.outputs>0&&h.inputs<=MAXP&&h.outputs<=MAXP;
+  return h}
+
+/* ---------- parsing pasted text ---------- */
 function parseText(text){
   text=String(text||"").replace(/\r\n?/g,"\n");
-  var lines=text.split("\n");
-  // 1) the generator's own CSV  (PORT,IN_PATCH,IN_LABEL,XPT_IN,OUT_LABEL[,OUT_PATCH])
+  var lines=text.split("\n"),i;
+  // 0) a report copied from the Videohub (labels + routes, exact size)
+  if(/^\s*(PROTOCOL PREAMBLE|VIDEOHUB DEVICE|INPUT LABELS|OUTPUT LABELS|VIDEO OUTPUT ROUTING)\s*:/m.test(text)){
+    var h=parseHub(text);
+    if(h.ok){var rows=blankRows(h.inputs,h.outputs),routes=0;
+      for(i=0;i<rows.length;i++){var r=rows[i];
+        if(i<h.inputs&&h.inputLabels[i]!=null&&h.inputLabels[i].trim())r.inl=h.inputLabels[i].trim();
+        if(i<h.outputs&&h.outputLabels[i]!=null&&h.outputLabels[i].trim())r.outl=h.outputLabels[i].trim();
+        if(i<h.outputs&&h.routes[i]!=null&&h.routes[i]+1<=h.inputs){r.xpt=String(h.routes[i]+1);routes++}}
+      return{rows:rows,ins:h.inputs,outs:h.outputs,exact:true,got:rows.length,how:"Videohub report"+(h.model?" ("+h.model+")":"")+", "+routes+" routes"}}}
+  // 0b) a Videohub Setup label set: Input,<n>,<label> / Output,<n>,<label>
+  if(/^\s*(Input|Output)\s*,\s*\d+\s*,/im.test(text)){
+    var ins=0,outs=0,li={},lo={};
+    lines.forEach(function(l){var m=/^\s*(Input|Output)\s*,\s*(\d+)\s*,(.*)$/i.exec(l);if(!m)return;var p=+m[2];if(p<1||p>MAXP)return;
+      if(m[1].toLowerCase()==="input"){li[p]=m[3].trim();if(p>ins)ins=p}else{lo[p]=m[3].trim();if(p>outs)outs=p}});
+    if(ins&&outs){var rs=blankRows(ins,outs);
+      for(i=0;i<rs.length;i++){var q=rs[i],pp=i+1;if(li[pp])q.inl=li[pp];if(lo[pp])q.outl=lo[pp]}
+      return{rows:rs,ins:ins,outs:outs,exact:true,got:rs.length,how:"Videohub Setup label set (labels only, no routes)"}}}
+  // 1) this page's own CSV  (PORT,IN_PATCH,IN_LABEL,XPT_IN,OUT_LABEL)
   if(/^\s*PORT\s*,/i.test(lines[0]||"")){
-    var h=splitCSV(lines[0]).map(function(x){return x.trim().toUpperCase()});
-    var ix=function(n){return h.indexOf(n)};
-    var rows=blankRows(),got=0;
-    for(var i=1;i<lines.length;i++){if(!lines[i].trim())continue;var c=splitCSV(lines[i]);var p=parseInt(c[ix("PORT")],10);if(!(p>=1&&p<=N))continue;
-      rows[p-1]={from:stripCell(c[ix("IN_PATCH")]),inl:stripCell(c[ix("IN_LABEL")])||"IN "+pad(p),outl:stripCell(c[ix("OUT_LABEL")])||"OUT "+pad(p),xpt:xptOf(c[ix("XPT_IN")])};got++}
-    if(got)return{rows:rows,got:got,how:"CSV"};
-  }
+    var hd=splitCSV(lines[0]).map(function(x){return x.trim().toUpperCase()}),ix=function(n){return hd.indexOf(n)},got=0,items=[];
+    for(i=1;i<lines.length;i++){if(!lines[i].trim())continue;var c=splitCSV(lines[i]),p=parseInt(c[ix("PORT")],10);if(!(p>=1&&p<=MAXP))continue;
+      items.push({p:p,from:stripCell(c[ix("IN_PATCH")]),inl:stripCell(c[ix("IN_LABEL")]),outl:stripCell(c[ix("OUT_LABEL")]),xpt:xptOf(c[ix("XPT_IN")])});got++}
+    if(got)return fromItems(items,"CSV")}
   // 2) tab (or multi-space) separated rows, as copied from a table
   var grid=lines.map(function(l){return l.indexOf("\t")>=0?l.split("\t").map(stripCell):null});
-  var tabRows=grid.filter(Boolean);
-  if(tabRows.length>=5){
+  if(grid.filter(Boolean).length>=5){
     var cols=null;
-    for(var r=0;r<grid.length;r++){var g=grid[r];if(!g)continue;var up=g.map(function(x){return x.toUpperCase()});
+    for(var r2=0;r2<grid.length;r2++){var g=grid[r2];if(!g)continue;var up=g.map(function(x){return x.toUpperCase()});
       if(up.some(function(x){return x==="XPT"||x.indexOf("XPT")===0})&&up.some(function(x){return x.indexOf("IN LABEL")>=0})){cols={};
         up.forEach(function(x,k){if(x.indexOf("FROM")===0)cols.from=k;else if(x.indexOf("IN LABEL")>=0)cols.inl=k;else if(x.indexOf("OUT LABEL")>=0)cols.outl=k;else if(x.indexOf("XPT")===0)cols.xpt=k});break}}
     if(!cols)cols={from:1,inl:2,outl:3,xpt:5};
-    var rows2=blankRows(),got2=0;
-    grid.forEach(function(g){if(!g)return;var p=portOf(g[0]||"");if(!p||p>N)return;
-      rows2[p-1]={from:g[cols.from]||"",inl:g[cols.inl]||"IN "+pad(p),outl:g[cols.outl]||"OUT "+pad(p),xpt:xptOf(g[cols.xpt])};got2++});
-    if(got2)return{rows:rows2,got:got2,how:"table"};
-  }
+    var it2=[];grid.forEach(function(g2){if(!g2)return;var p2=portOf(g2[0]||"");if(!p2)return;it2.push({p:p2,from:g2[cols.from]||"",inl:g2[cols.inl]||"",outl:g2[cols.outl]||"",xpt:xptOf(g2[cols.xpt])})});
+    if(it2.length)return fromItems(it2,"table")}
   // 3) one cell per line (some copies do this): walk from the first "IN 01" cell in groups of 7 (empty lines are empty cells)
   var start=-1;for(var s=0;s<lines.length;s++){if(portOf(stripCell(lines[s]))===1){start=s;break}}
   if(start>=0){
-    var rows3=blankRows(),got3=0;
+    var it3=[];
     for(var k=start;k+6<lines.length;k+=7){
-      var cell=function(j){return stripCell(lines[k+j])};
-      var p3=portOf(cell(0));if(!p3||p3>N)break;
-      rows3[p3-1]={from:cell(1),inl:cell(2)||"IN "+pad(p3),outl:cell(3)||"OUT "+pad(p3),xpt:xptOf(cell(5))};got3++}
-    if(got3>=5)return{rows:rows3,got:got3,how:"cells"};
-  }
-  return null;
-}
+      var cell=function(j){return stripCell(lines[k+j])},p3=portOf(cell(0));if(!p3)break;
+      it3.push({p:p3,from:cell(1),inl:cell(2),outl:cell(3),xpt:xptOf(cell(5))})}
+    if(it3.length>=5)return fromItems(it3,"cells")}
+  return null}
+/* rows found in a pasted table or CSV; the size follows the highest port (a blank IN LABEL beyond the real input count means "no such input") */
+function fromItems(items,how){
+  var need=0,ins=0,outs=0;
+  items.forEach(function(x){if(x.p>need)need=x.p;if(x.inl&&x.p>ins)ins=x.p;if(x.outl&&x.p>outs)outs=x.p});
+  return{items:items,need:need,ins:ins||need,outs:outs||need,exact:false,got:items.length,how:how}}
 
-function load(text,how){
+function applyItems(res){
+  var cur=nrows(state.ins,state.outs),ins,outs;
+  if(res.need<=Math.min(state.ins,state.outs)||(res.need<=cur&&state.ins!==state.outs)){ins=state.ins;outs=state.outs}
+  else{ins=outs=snapUp(res.need)}
+  var rows=blankRows(ins,outs);
+  res.items.forEach(function(x){var r=rows[x.p-1];if(!r)return;r.from=x.from;
+    if(x.p<=ins&&x.inl)r.inl=x.inl;if(x.p<=outs&&x.outl)r.outl=x.outl;if(x.p<=outs)r.xpt=x.xpt});
+  return{rows:rows,ins:ins,outs:outs}}
+
+function load(text){
   var res=parseText(text);
-  if(!res){note("Couldn't find the router table in that text. Copy the whole table (from the header row down) and try again.",true);return false}
-  state.rows=res.rows;original=clone(res.rows);
-  note("Loaded "+res.got+" rows from "+res.how+".",false);
+  if(!res){note("Couldn't find a router table, label set or Videohub report in that text. Copy the whole table (from the header row down) and try again.",true);return false}
+  var set=res.exact?res:applyItems(res);
+  state.ins=set.ins;state.outs=set.outs;state.rows=set.rows;original=snap();
+  note("Loaded "+res.got+" rows from "+res.how+" ("+state.ins+" x "+state.outs+").",false);
   render();return true}
-function note(t,bad){var n=$("srcnote");n.textContent=t;n.style.color=bad?"#a12622":"#1d6b33"}
+function note(t,bad){var n=$("srcnote");n.textContent=t;n.style.color=bad?"var(--red)":"var(--green)"}
+
+function setSize(ins,outs){
+  ins=clamp(ins);outs=clamp(outs);
+  var old=state.rows,rows=blankRows(ins,outs);
+  rows.forEach(function(r,i){var o=old[i];if(!o)return;r.from=o.from;
+    if(i<ins&&i<state.ins)r.inl=o.inl;if(i<outs&&i<state.outs){r.outl=o.outl;r.xpt=o.xpt}});
+  state.ins=ins;state.outs=outs;state.rows=rows;render()}
 
 /* ---------- validation ---------- */
 function analyze(){
-  var errs=[],warns=[],bad={},warnc={},routes=0;
-  var inl={},outl={};
-  state.rows.forEach(function(r,i){var p=i+1;
-    var a=r.inl.trim().toUpperCase(),b=r.outl.trim().toUpperCase();
-    if(a&&!/^IN \d\d$/.test(a)){(inl[a]=inl[a]||[]).push(p)}
-    if(b&&!/^OUT \d\d$/.test(b)){(outl[b]=outl[b]||[]).push(p)}
-    if(r.inl.length>MAXLBL){warns.push("IN "+pad(p)+" label '"+r.inl+"' is "+r.inl.length+" chars (max "+MAXLBL+")");warnc["i"+p]=1}
-    if(r.outl.length>MAXLBL){warns.push("OUT "+pad(p)+" label '"+r.outl+"' is "+r.outl.length+" chars (max "+MAXLBL+")");warnc["o"+p]=1}
-    if(/[\n\r]/.test(r.inl+r.outl)){errs.push("Row "+pad(p)+" has a line break in a label");bad["i"+p]=1}
-    if(r.xpt!==""){
-      var v=+r.xpt;
-      if(!/^\d+$/.test(r.xpt)||v<1||v>N){errs.push("OUT "+pad(p)+" XPT = "+r.xpt+" (inputs only go 1-"+N+")");bad["x"+p]=1}
-      else{routes++;if(/^IN \d\d$/i.test(state.rows[v-1].inl.trim())){warns.push("OUT "+pad(p)+" takes IN "+pad(v)+", which is still named '"+state.rows[v-1].inl+"'");warnc["x"+p]=1}}
-    }
+  var errs=[],warns=[],bad={},warnc={},routes=0,inl={},outl={},L=state.limit;
+  var flagWarn=function(side,p,key,v){
+    var c=cleanLabel(v);
+    if(c.flags.indexOf("comma")>=0){warns.push(side+" "+pad(p)+" label '"+v+"' has a comma; the label set writes it as '"+c.text+"'");warnc[key+p]=1}
+    if(c.flags.indexOf("ascii")>=0){warns.push(side+" "+pad(p)+" label '"+v+"' has characters outside plain ASCII; the label set writes '"+c.text+"'");warnc[key+p]=1}};
+  state.rows.forEach(function(r,i){var p=i+1,hasI=p<=state.ins,hasO=p<=state.outs;
+    if(hasI){var a=r.inl.trim().toUpperCase();
+      if(a&&!isPhIn(a))(inl[a]=inl[a]||[]).push(p);
+      if(r.inl.length>L){warns.push("IN "+pad(p)+" label '"+r.inl+"' is "+r.inl.length+" chars (limit "+L+")");warnc["i"+p]=1}
+      if(/[\n\r]/.test(r.inl)){errs.push("Row "+pad(p)+" has a line break in an input label");bad["i"+p]=1}
+      flagWarn("IN",p,"i",r.inl)}
+    if(hasO){var b=r.outl.trim().toUpperCase();
+      if(b&&!isPhOut(b))(outl[b]=outl[b]||[]).push(p);
+      if(r.outl.length>L){warns.push("OUT "+pad(p)+" label '"+r.outl+"' is "+r.outl.length+" chars (limit "+L+")");warnc["o"+p]=1}
+      if(/[\n\r]/.test(r.outl)){errs.push("Row "+pad(p)+" has a line break in an output label");bad["o"+p]=1}
+      flagWarn("OUT",p,"o",r.outl);
+      if(r.xpt!==""){
+        if(!validX(r.xpt)){errs.push("OUT "+pad(p)+" XPT = "+r.xpt+" (inputs only go 1-"+state.ins+")");bad["x"+p]=1}
+        else{routes++;if(isPhIn(state.rows[+r.xpt-1].inl)){warns.push("OUT "+pad(p)+" takes IN "+pad(+r.xpt)+", which is still named '"+state.rows[+r.xpt-1].inl+"'");warnc["x"+p]=1}}}}
   });
   Object.keys(inl).forEach(function(k){if(inl[k].length>1)warns.push("IN label '"+k+"' used more than once (IN "+inl[k].map(pad).join(", ")+")")});
   Object.keys(outl).forEach(function(k){if(outl[k].length>1)warns.push("OUT label '"+k+"' used more than once (OUT "+outl[k].map(pad).join(", ")+")")});
-  return{errs:errs,warns:warns,bad:bad,warnc:warnc,routes:routes}
-}
+  return{errs:errs,warns:warns,bad:bad,warnc:warnc,routes:routes}}
 
 /* ---------- render ---------- */
 function render(){
-  $("job").value=state.job||"";
-  var A=analyze();
-  var chips=$("chips");chips.innerHTML="";
+  $("job").value=state.job||"";$("limit").value=state.limit;$("chkBlank").checked=state.blank;
+  syncSize();
+  var A=analyze(),chips=$("chips");chips.innerHTML="";
   function chip(cls,t){var s=document.createElement("span");s.className="chip "+cls;s.textContent=t;chips.appendChild(s)}
+  chip("c-mut",state.ins+" x "+state.outs);
   chip(A.routes?"c-ok":"c-mut",A.routes+" route"+(A.routes===1?"":"s"));
   chip(A.errs.length?"c-err":"c-ok",A.errs.length+" error"+(A.errs.length===1?"":"s"));
   chip(A.warns.length?"c-warn":"c-ok",A.warns.length+" warning"+(A.warns.length===1?"":"s"));
   var m=$("msgs");m.innerHTML="";
-  A.errs.forEach(function(t){m.appendChild(msg("e","ERROR",t))});
-  A.warns.forEach(function(t){m.appendChild(msg("w","WARN",t))});
-  // grid
+  A.errs.slice(0,60).forEach(function(t){m.appendChild(msg("e","ERROR",t))});
+  A.warns.slice(0,60).forEach(function(t){m.appendChild(msg("w","WARN",t))});
+  if(A.errs.length+A.warns.length>120)m.appendChild(msg("i","NOTE","More messages not shown. Fix the ones above first."));
   var g=$("grid");g.innerHTML="";
   var th=document.createElement("thead");
-  th.innerHTML='<tr class="band"><th class="bi grp-l" colspan="3">INPUT CONFIG</th><th class="bo grp-l grp-r" colspan="4">OUTPUT CONFIG (label + source + crosspoint + port)</th></tr>'+
+  th.innerHTML='<tr class="band"><th class="i grp-l" colspan="3">INPUT CONFIG</th><th class="o grp-l grp-r" colspan="4">OUTPUT CONFIG (label + source + crosspoint + port)</th></tr>'+
    '<tr><th class="i grp-l">&#9654; IN</th><th class="i">FROM (PATCH)</th><th class="i">IN LABEL</th><th class="o grp-l">OUT LABEL</th><th class="o">ROUTED SOURCE</th><th class="o">XPT</th><th class="o grp-r">OUT &#9654;</th></tr>';
   g.appendChild(th);
   var tb=document.createElement("tbody");
-  state.rows.forEach(function(r,i){var p=i+1;
+  state.rows.forEach(function(r,i){var p=i+1,hasI=p<=state.ins,hasO=p<=state.outs,v=hasO&&validX(r.xpt)?+r.xpt:0;
     var tr=document.createElement("tr");if(p%2===0)tr.className="alt";
-    var v=r.xpt!==""&&/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
-    tr.innerHTML='<td class="i grp-l">&#9654; IN '+pad(p)+'</td>'+
-      '<td class="i"></td><td class="i'+(A.warnc["i"+p]?" warnc":"")+(A.bad["i"+p]?" bad":"")+'"></td>'+
-      '<td class="o grp-l'+(A.warnc["o"+p]?" warnc":"")+'"></td>'+
+    var na='<td class="na">&mdash;</td>';
+    tr.innerHTML=(hasI?'<td class="i grp-l">&#9654; IN '+pad(p)+'</td><td class="i"></td><td class="i'+(A.warnc["i"+p]?" warnc":"")+(A.bad["i"+p]?" bad":"")+'"></td>'
+        :'<td class="na grp-l">&mdash;</td>'+na+na)+
+      (hasO?'<td class="o grp-l'+(A.warnc["o"+p]?" warnc":"")+(A.bad["o"+p]?" bad":"")+'"></td>'+
       '<td class="o src">'+(v?esc(state.rows[v-1].inl):"")+'</td>'+
       '<td class="x'+(A.bad["x"+p]?" bad":"")+(A.warnc["x"+p]?" warnc":"")+'"></td>'+
-      '<td class="o grp-r">OUT '+pad(p)+' &#9654;</td>';
+      '<td class="o grp-r">OUT '+pad(p)+' &#9654;</td>':'<td class="na grp-l">&mdash;</td>'+na+na+'<td class="na grp-r">&mdash;</td>');
     var tds=tr.children;
-    tds[1].appendChild(inp(r,"from",p));tds[2].appendChild(inp(r,"inl",p));tds[3].appendChild(inp(r,"outl",p));tds[5].appendChild(inp(r,"xpt",p));
+    if(hasI){tds[1].appendChild(inp(r,"from",p));tds[2].appendChild(inp(r,"inl",p))}else tds[1].textContent="";
+    if(hasO){tds[3].appendChild(inp(r,"outl",p));tds[5].appendChild(inp(r,"xpt",p))}
     tb.appendChild(tr)});
   g.appendChild(tb);
-  // preview
   var pv=$("preview"),h="";
-  state.rows.forEach(function(r,i){if(r.xpt!==""&&/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N){var s=state.rows[+r.xpt-1];
-    h+='<div style="padding:3px 6px;'+(i%2?"background:#e9edf5":"")+'"><b>OUT '+pad(i+1)+'</b> &nbsp;'+esc(r.outl)+' &nbsp;<span style="color:#2f4f7f">&#8592;</span>&nbsp; <b>IN '+pad(+r.xpt)+'</b> &nbsp;'+esc(s.inl)+'</div>'}});
+  state.rows.forEach(function(r,i){if(i<state.outs&&validX(r.xpt)){var s=state.rows[+r.xpt-1];
+    h+='<div><b>OUT '+pad(i+1)+'</b> &nbsp;'+esc(r.outl)+' &nbsp;<span class="arr">&#8592;</span>&nbsp; <b>IN '+pad(+r.xpt)+'</b> &nbsp;'+esc(s.inl)+'</div>'}});
   pv.innerHTML=h||"No routes yet. Type an input number in the XPT column.";
-  // buttons
   var ok=A.errs.length===0;
-  ["btnTxt","btnCsv","btnPdf","btnCopyTxt"].forEach(function(id){$(id).disabled=!ok});
-  $("dlnote").dataset.ok=ok;
-  var edited=original&&!same(original,state.rows);
+  ["btnSet","btnTxt","btnCsv","btnPdf","btnCopyTxt"].forEach(function(id){$(id).disabled=!ok});
+  var edited=original&&!same(original,snap());
   $("editnote").textContent=edited?"Edited from the original table. Downloads will be tagged _edited.":(original?"Matches the loaded table.":"");
   $("btnReset").disabled=!original||!edited;
-  updateLink();
-}
+  $("setName").textContent=setFileName();
+  renderCmds();
+  updateLink()}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function msg(cls,tag,t){var d=document.createElement("div");d.className="msg "+cls;d.innerHTML="<b>"+tag+"</b><span>"+esc(t)+"</span>";return d}
 function inp(r,key,p){var i=document.createElement("input");i.type="text";i.value=r[key];i.setAttribute("aria-label",key+" "+p);
@@ -2594,61 +2762,142 @@ function inp(r,key,p){var i=document.createElement("input");i.type="text";i.valu
   i.addEventListener("keydown",function(e){if(e.key==="Enter"){i.blur()}});
   return i}
 
+/* ---------- size picker ---------- */
+function buildSizes(){
+  var s=$("size"),h="";
+  STD.forEach(function(x,i){h+='<option value="'+i+'">'+x[0]+" × "+x[1]+" · "+x[2]+"</option>"});
+  h+='<option value="custom">Custom size…</option>';s.innerHTML=h}
+function syncSize(){
+  var idx=-1;STD.forEach(function(x,i){if(x[0]===state.ins&&x[1]===state.outs)idx=i});
+  $("size").value=idx>=0?String(idx):"custom";
+  $("customSize").classList.toggle("hide",idx>=0);
+  $("cIns").value=state.ins;$("cOuts").value=state.outs}
+
 /* ---------- outputs ---------- */
+function oneLine(s){return String(s).replace(/[\r\n]+/g," ").trim()}
 function loadText(){
-  var t="INPUT LABELS:\n";state.rows.forEach(function(r,i){t+=i+" "+r.inl+"\n"});
-  t+="\nOUTPUT LABELS:\n";state.rows.forEach(function(r,i){t+=i+" "+r.outl+"\n"});
-  t+="\nVIDEO OUTPUT ROUTING:\n";state.rows.forEach(function(r,i){if(r.xpt!=="")t+=i+" "+(+r.xpt-1)+"\n"});
+  var a=[],b=[],c=[],p,r,l;
+  for(p=1;p<=state.ins;p++){l=oneLine(state.rows[p-1].inl);if(l&&!(state.blank&&isPhIn(l)))a.push((p-1)+" "+l)}
+  for(p=1;p<=state.outs;p++){r=state.rows[p-1];l=oneLine(r.outl);if(l&&!(state.blank&&isPhOut(l)))b.push((p-1)+" "+l);if(validX(r.xpt))c.push((p-1)+" "+(+r.xpt-1))}
+  var t="";
+  if(a.length)t+="INPUT LABELS:\n"+a.join("\n")+"\n\n";
+  if(b.length)t+="OUTPUT LABELS:\n"+b.join("\n")+"\n\n";
+  if(c.length)t+="VIDEO OUTPUT ROUTING:\n"+c.join("\n")+"\n\n";
   return t}
+/* The file Videohub Setup saves / loads (Settings gear > save / load label set): CSV, no header, one line per port, 1-based,
+   inputs then outputs, every port listed, CRLF, no newline after the last line. Checked against files saved from 40x40 and 120x120 units. */
+function setLabel(l,isPh){return state.blank&&isPh(l)?"":cleanLabel(l).text}
+function labelSetText(){
+  var t=[],p;
+  for(p=1;p<=state.ins;p++)t.push("Input,"+p+","+setLabel(state.rows[p-1].inl,isPhIn));
+  for(p=1;p<=state.outs;p++)t.push("Output,"+p+","+setLabel(state.rows[p-1].outl,isPhOut));
+  return t.join("\r\n")}
 function csvText(){
   var q=function(s){s=String(s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   var t="PORT,IN_PATCH,IN_LABEL,XPT_IN,OUT_LABEL\n";
   state.rows.forEach(function(r,i){t+=[i+1,q(r.from),q(r.inl),r.xpt,q(r.outl)].join(",")+"\n"});return t}
+function jobSlug(){return(state.job||"").trim().replace(/[^\w\-]+/g,"_").replace(/^_+|_+$/g,"")}
 function fname(base,ext){
-  var j=(state.job||"").trim().replace(/[^\w\-]+/g,"_").replace(/^_+|_+$/g,"");
-  var edited=original&&!same(original,state.rows);
-  return base+(j?"_"+j:"")+(edited?"_edited":"")+"."+ext}
+  var edited=original&&!same(original,snap());
+  return base+(jobSlug()?"_"+jobSlug():"")+(edited?"_edited":"")+"."+ext}
+function setFileName(){
+  var j=(state.job||"").trim().replace(/[\\\/:*?"<>|\u0000-\u001f]+/g,"-").replace(/ {2,}/g," ");
+  return "Labels "+(j||"Videohub")+" "+state.ins+"x"+state.outs+".txt"}
 function download(name,text,mime){var b=new Blob([text],{type:mime||"text/plain"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
 
+/* ---------- compare with / back up the router ---------- */
+function compareHub(h){
+  var diffs=[],checked=0,matched=0,p,r,l;
+  var rec=h.inputs>0||h.outputs>0||Object.keys(h.inputLabels).length||Object.keys(h.outputLabels).length||Object.keys(h.routes).length;
+  if(h.inputs&&h.inputs!==state.ins)diffs.push({what:"Size",exp:state.ins+" inputs",act:h.inputs+" inputs"});
+  if(h.outputs&&h.outputs!==state.outs)diffs.push({what:"Size",exp:state.outs+" outputs",act:h.outputs+" outputs"});
+  for(p=1;p<=state.ins;p++){l=oneLine(state.rows[p-1].inl);if(!l||(state.blank&&isPhIn(l)))continue;checked++;
+    var a=h.inputLabels[p-1];if(a===l)matched++;else diffs.push({what:"Input "+p+" label",exp:l,act:a==null?"(not reported)":a})}
+  for(p=1;p<=state.outs;p++){r=state.rows[p-1];l=oneLine(r.outl);
+    if(l&&!(state.blank&&isPhOut(l))){checked++;var b=h.outputLabels[p-1];if(b===l)matched++;else diffs.push({what:"Output "+p+" label",exp:l,act:b==null?"(not reported)":b})}
+    if(validX(r.xpt)){checked++;var e=+r.xpt-1,c=h.routes[p-1];if(c===e)matched++;else diffs.push({what:"Output "+p+" route",exp:"input "+(e+1),act:c==null?"(not reported)":"input "+(c+1)})}}
+  return{recognized:!!rec,checked:checked,matched:matched,diffs:diffs,model:h.model}}
+function backupText(h){
+  var blk=function(name,o){var k=Object.keys(o).map(Number).sort(function(a,b){return a-b});return k.length?name+":\n"+k.map(function(i){return i+" "+o[i]}).join("\n")+"\n\n":""};
+  return blk("INPUT LABELS",h.inputLabels)+blk("OUTPUT LABELS",h.outputLabels)+blk("VIDEO OUTPUT ROUTING",h.routes)}
+function showResult(c){
+  var el=$("result");el.innerHTML="";
+  if(!c.recognized){el.appendChild(msg("w","WARN","That doesn't look like a Videohub report. It should start with PROTOCOL PREAMBLE: and include VIDEOHUB DEVICE:, INPUT LABELS: and so on."));return}
+  var head=c.diffs.length?msg("w","DIFF",c.diffs.length+" difference"+(c.diffs.length>1?"s":"")+" - "+c.matched+" of "+c.checked+" labels and routes match"+(c.model?" - "+c.model:"")):
+    msg("i","OK","The router matches the table"+(c.model?" ("+c.model+")":"")+": "+c.matched+" of "+c.checked+" labels and routes checked.");
+  el.appendChild(head);
+  if(c.diffs.length){var t=document.createElement("table");t.className="diff";t.innerHTML="<thead><tr><th>Item</th><th>Table says</th><th>Router has</th></tr></thead>";
+    var tb=document.createElement("tbody");c.diffs.slice(0,40).forEach(function(d){var tr=document.createElement("tr");tr.innerHTML="<td>"+esc(d.what)+"</td><td class=\"mono\">"+esc(d.exp)+"</td><td class=\"mono warn\">"+esc(d.act)+"</td>";tb.appendChild(tr)});
+    t.appendChild(tb);el.appendChild(t);
+    if(c.diffs.length>40){var n=document.createElement("p");n.className="small";n.textContent="...and "+(c.diffs.length-40)+" more.";el.appendChild(n)}}}
 
-/* ---------- PDF (hand-built, no library; one landscape page) ---------- */
+/* ---------- commands (terminal) ---------- */
+function isHost(s){
+  s=String(s).trim();var v4=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s);
+  if(v4)return v4.slice(1).every(function(o){return+o<=255});
+  if(/^[\d.]+$/.test(s))return false;
+  return s.length<=253&&/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(s)}
+function cmdRow(label,cmd){
+  var d=document.createElement("div");d.innerHTML='<p class="small" style="margin:10px 0 0">'+esc(label)+'</p>';
+  var r=document.createElement("div");r.className="cmd";var c=document.createElement("code");c.textContent=cmd;
+  var b=document.createElement("button");b.textContent="Copy";
+  b.onclick=function(){(navigator.clipboard?navigator.clipboard.writeText(cmd):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy"},1500)},function(){window.prompt("Copy this command:",cmd)})};
+  r.appendChild(c);r.appendChild(b);d.appendChild(r);return d}
+function renderCmds(){
+  var box=$("cmds");box.innerHTML="";var a=$("addr").value.trim();
+  if(!a){box.innerHTML='<p class="small">Enter the router\'s address to get commands you can copy.</p>';return}
+  if(!isHost(a)){box.innerHTML='<p class="small err">That is not an IP address or host name.</p>';return}
+  var f=fname("videohub_load","txt");
+  box.appendChild(cmdRow("Read the router (Python 3, with videohub_push.py in Downloads):","cd ~/Downloads && python3 videohub_push.py --read "+a));
+  box.appendChild(cmdRow("Read the router without Python (macOS / Linux):","(sleep 2) | nc "+a+" "+PORT+" > ~/Downloads/videohub_state.txt"));
+  box.appendChild(cmdRow("Send videohub_load.txt (Python 3, checks every block was accepted):","cd ~/Downloads && python3 videohub_push.py "+f+" "+a+" --verify"));
+  box.appendChild(cmdRow("Send without Python (macOS / Linux, no acceptance check):","cd ~/Downloads && (cat "+f+"; sleep 2) | nc "+a+" "+PORT));
+  var n=document.createElement("p");n.className="note small";n.style.marginTop="8px";n.textContent="On Windows, use PuTTY as in the Videohub manual: connect to "+a+" on port "+PORT+" (Telnet) and paste the load text.";box.appendChild(n)}
+
+/* ---------- PDF (hand-built, no library; landscape pages, 40 rows each) ---------- */
 function pdfBytes(){
   var W=792,H=612,M=28,RH=12.5,HH=14,cw=[50,190,130,130,130,50,56],hd=["▶ IN","FROM (PATCH)","IN LABEL","OUT LABEL","ROUTED SOURCE","XPT","OUT ▶"];
-  var c=[],pe=function(t){return String(t).replace(/[▶►]/g,">").replace(/[^\x20-\x7e]/g,"?").replace(/[\\()]/g,"\\$&")};
+  var pe=function(t){return String(t).replace(/[▶►]/g,">").replace(/[^\x20-\x7e]/g,"?").replace(/[\\()]/g,"\\$&")};
   var fit=function(t,w,sz){var n=Math.max(1,Math.floor((w-6)/(sz*0.55)));t=String(t);return t.length>n?t.slice(0,n-1)+"~":t};
-  var txt=function(x,y,t,f,sz,g){c.push("BT "+(g==null?0:g)+" g /"+f+" "+sz+" Tf "+x.toFixed(1)+" "+y.toFixed(1)+" Td ("+pe(t)+") Tj ET")};
-  var rect=function(x,y,w,h,g){c.push(g+" g "+x.toFixed(1)+" "+y.toFixed(1)+" "+w.toFixed(1)+" "+h.toFixed(1)+" re f")};
   var d=new Date(),ds=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
-  txt(M,H-M-8,"Videohub 40x40 Router"+(state.job?" - "+state.job:""),"F2",14);
-  txt(W-M-120,H-M-8,ds,"F1",9,0.35);
-  var top=H-M-22,x,i,j;
-  rect(M,top-HH,W-2*M,HH,0.1);x=M;
-  for(j=0;j<7;j++){txt(x+3,top-HH+4.5,hd[j],"F2",8,1);x+=cw[j]}
-  var y=top-HH;
-  state.rows.forEach(function(r,k){var p=k+1,v=/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
-    if(k%2)rect(M,y-RH,W-2*M,RH,0.92);
-    var cells=["IN "+pad(p),r.from,r.inl,r.outl,v?state.rows[v-1].inl:"",v?pad(v):"","OUT "+pad(p)],xx=M;
-    for(j=0;j<7;j++){txt(xx+3,y-RH+4,fit(cells[j],cw[j],8),(j===0||j===6||j===5)?"F2":"F1",8);xx+=cw[j]}
-    y-=RH});
-  c.push("0.6 G 0.5 w "+M+" "+(y)+" "+(W-2*M)+" "+(top-HH-y+HH)+" re S");
-  x=M;for(j=0;j<6;j++){x+=cw[j];c.push(x+" "+top+" m "+x+" "+y+" l S")}
-  txt(M,y-14,"XPT = each output takes the IN number listed. Blank XPT = unchanged. Generated at videohub.pixeltach.com","F1",8,0.35);
-  var cs=c.join("\n"),o=[];
+  var perPage=Math.max(1,Math.floor((H-2*M-22-HH-26)/RH)),total=state.rows.length,pages=Math.max(1,Math.ceil(total/perPage)),streams=[];
+  for(var pg=0;pg<pages;pg++){
+    var c=[],txt=function(x,y,t,f,sz,g){c.push("BT "+(g==null?0:g)+" g /"+f+" "+sz+" Tf "+x.toFixed(1)+" "+y.toFixed(1)+" Td ("+pe(t)+") Tj ET")};
+    var rect=function(x,y,w,h,g){c.push(g+" g "+x.toFixed(1)+" "+y.toFixed(1)+" "+w.toFixed(1)+" "+h.toFixed(1)+" re f")};
+    txt(M,H-M-8,"Videohub "+state.ins+"x"+state.outs+" Router"+(state.job?" - "+state.job:"")+(pages>1?"  (page "+(pg+1)+" of "+pages+")":""),"F2",14);
+    txt(W-M-120,H-M-8,ds,"F1",9,0.35);
+    var top=H-M-22,x,j;
+    rect(M,top-HH,W-2*M,HH,0.1);x=M;
+    for(j=0;j<7;j++){txt(x+3,top-HH+4.5,hd[j],"F2",8,1);x+=cw[j]}
+    var y=top-HH,from=pg*perPage,to=Math.min(total,from+perPage);
+    for(var k=from;k<to;k++){var r=state.rows[k],p=k+1,hasI=p<=state.ins,hasO=p<=state.outs,v=hasO&&validX(r.xpt)?+r.xpt:0;
+      if((k-from)%2)rect(M,y-RH,W-2*M,RH,0.92);
+      var cells=[hasI?"IN "+pad(p):"",hasI?r.from:"",hasI?r.inl:"",hasO?r.outl:"",v?state.rows[v-1].inl:"",v?pad(v):"",hasO?"OUT "+pad(p):""],xx=M;
+      for(j=0;j<7;j++){txt(xx+3,y-RH+4,fit(cells[j],cw[j],8),(j===0||j===6||j===5)?"F2":"F1",8);xx+=cw[j]}
+      y-=RH}
+    c.push("0.6 G 0.5 w "+M+" "+(y)+" "+(W-2*M)+" "+(top-HH-y+HH)+" re S");
+    x=M;for(j=0;j<6;j++){x+=cw[j];c.push(x+" "+top+" m "+x+" "+y+" l S")}
+    txt(M,y-14,"XPT = each output takes the IN number listed. Blank XPT = unchanged. Generated at videohub.pixeltach.com","F1",8,0.35);
+    streams.push(c.join("\n"))}
+  var o=[],i;
   o[1]="<< /Type /Catalog /Pages 2 0 R >>";
-  o[2]="<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
-  o[3]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+W+" "+H+"] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>";
-  o[4]="<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream";
-  o[5]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
-  o[6]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
-  var out="%PDF-1.4\n",off=[];
-  for(i=1;i<=6;i++){off[i]=out.length;out+=i+" 0 obj\n"+o[i]+"\nendobj\n"}
-  var xr=out.length;out+="xref\n0 7\n0000000000 65535 f \n";
-  for(i=1;i<=6;i++)out+=("0000000000"+off[i]).slice(-10)+" 00000 n \n";
-  out+="trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF";
+  var kids=[];for(i=0;i<pages;i++)kids.push((5+2*i)+" 0 R");
+  o[2]="<< /Type /Pages /Kids ["+kids.join(" ")+"] /Count "+pages+" >>";
+  o[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  o[4]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  for(i=0;i<pages;i++){
+    o[5+2*i]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+W+" "+H+"] /Contents "+(6+2*i)+" 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>";
+    o[6+2*i]="<< /Length "+streams[i].length+" >>\nstream\n"+streams[i]+"\nendstream"}
+  var n=4+2*pages,out="%PDF-1.4\n",off=[];
+  for(i=1;i<=n;i++){off[i]=out.length;out+=i+" 0 obj\n"+o[i]+"\nendobj\n"}
+  var xr=out.length;out+="xref\n0 "+(n+1)+"\n0000000000 65535 f \n";
+  for(i=1;i<=n;i++)out+=("0000000000"+off[i]).slice(-10)+" 00000 n \n";
+  out+="trailer\n<< /Size "+(n+1)+" /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF";
   var u=new Uint8Array(out.length);for(i=0;i<out.length;i++)u[i]=out.charCodeAt(i)&255;return u}
 
 /* ---------- share link (data lives in the URL fragment) ---------- */
-function payload(){return JSON.stringify({j:state.job||"",p:state.rows.map(function(r){return[r.from,r.inl,r.outl,r.xpt]})})}
+function payload(){var p={j:state.job||"",s:[state.ins,state.outs],p:state.rows.map(function(r){return[r.from,r.inl,r.outl,r.xpt]})};
+  if(state.limit!==DEFAULT_LIMIT)p.l=state.limit;if(!state.blank)p.u=0;return JSON.stringify(p)}
 function b64u(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
 function unb64u(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
 async function pack(){
@@ -2666,8 +2915,7 @@ async function updateLink(){
   var my=++linkSeq,code;
   try{code=await pack()}catch(e){return}
   if(my!==linkSeq)return;
-  var base=location.href.split("#")[0];
-  var url=base+"#"+code;
+  var url=location.href.split("#")[0]+"#"+code;
   $("link").value=url;
   var qrEl=$("qr");qrEl.innerHTML="";
   var n=$("linknote");
@@ -2678,14 +2926,28 @@ async function updateLink(){
     for(var r=0;r<cnt;r++)for(var cc=0;cc<cnt;cc++)if(qr.isDark(r,cc))x.fillRect(pad4+cc*sz,pad4+r*sz,sz,sz);
     c.style.width="220px";c.style.height="220px";c.id="qrcanvas";qrEl.appendChild(c);
     n.textContent="Link is "+url.length+" characters.";n.style.color="";
-    if(/^file:/.test(location.protocol)){n.textContent+=" This page is opened from a local file, so the link only works on this computer. Host the page (for example GitHub Pages) and open it there to share.";n.style.color="#8a6500"}
-  }catch(e){n.textContent="Link is "+url.length+" characters, too long for a QR code. The link itself still works.";n.style.color="#8a6500"}
+    if(/^file:/.test(location.protocol)){n.textContent+=" This page is opened from a local file, so the link only works on this computer. Host the page (for example GitHub Pages) and open it there to share.";n.style.color="var(--amber)"}
+  }catch(e){n.textContent="Link is "+url.length+" characters, too long for a QR code. The link itself still works.";n.style.color="var(--amber)"}
 }
 
+/* ---------- theme ---------- */
+function themeNow(){var t;try{t=localStorage.getItem("edid-theme")}catch(e){}
+  if(t==="dark"||t==="light")return t;return window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);$("btnTheme").textContent=t==="dark"?"☀":"☾";$("btnTheme").setAttribute("aria-label",t==="dark"?"Switch to light theme":"Switch to dark theme")}
+
 /* ---------- wiring ---------- */
+buildSizes();applyTheme(themeNow());
+$("btnTheme").onclick=function(){var t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";try{localStorage.setItem("edid-theme",t)}catch(e){}applyTheme(t)};
 $("job").addEventListener("change",function(){state.job=this.value.trim();render()});
-$("btnReset").onclick=function(){if(original){state.rows=clone(original);render()}};
-$("btnBlank").onclick=function(){state.rows=blankRows();original=clone(state.rows);note("Blank template.",false);render()};
+$("limit").addEventListener("change",function(){var v=parseInt(this.value,10);state.limit=isNaN(v)?DEFAULT_LIMIT:Math.max(4,Math.min(64,v));render()});
+$("chkBlank").addEventListener("change",function(){state.blank=this.checked;render()});
+$("size").addEventListener("change",function(){var v=this.value;
+  if(v==="custom"){$("customSize").classList.remove("hide");return}
+  var s=STD[+v];setSize(s[0],s[1])});
+["cIns","cOuts"].forEach(function(id){$(id).addEventListener("change",function(){setSize($("cIns").value,$("cOuts").value)})});
+$("addr").addEventListener("input",renderCmds);
+$("btnReset").onclick=function(){if(original){state.ins=original.ins;state.outs=original.outs;state.rows=clone(original.rows);render()}};
+$("btnBlank").onclick=function(){state.rows=blankRows(state.ins,state.outs);original=snap();note("Blank template.",false);render()};
 $("btnTa").onclick=function(){load($("ta").value)};
 $("btnPasteClip").onclick=function(){
   if(navigator.clipboard&&navigator.clipboard.readText){navigator.clipboard.readText().then(function(t){load(t)},function(){note("The browser blocked clipboard access. Press Ctrl+V (Cmd+V) on the page instead.",true)})}
@@ -2697,44 +2959,53 @@ document.addEventListener("paste",function(e){
 ["dragover","dragenter"].forEach(function(ev){$("drop").addEventListener(ev,function(e){e.preventDefault();this.classList.add("hot")})});
 ["dragleave","drop"].forEach(function(ev){$("drop").addEventListener(ev,function(){this.classList.remove("hot")})});
 $("drop").addEventListener("drop",function(e){e.preventDefault();var f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f){f.text().then(function(t){load(t)})}else{var t=e.dataTransfer.getData("text/plain");if(t)load(t)}});
+$("btnSet").onclick=function(){download(setFileName(),labelSetText())};
 $("btnTxt").onclick=function(){download(fname("videohub_load","txt"),loadText())};
 $("btnPdf").onclick=function(){download(fname("videohub_router","pdf"),pdfBytes(),"application/pdf")};
 $("btnCsv").onclick=function(){download(fname("videohub","csv"),csvText(),"text/csv")};
 $("btnCopyTxt").onclick=function(){var b=this;(navigator.clipboard?navigator.clipboard.writeText(loadText()):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy load text"},1500)},function(){b.textContent="Copy blocked - use download";})};
 $("btnCopyLink").onclick=function(){var b=this,v=$("link").value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy link"},1500)},function(){$("link").select();b.textContent="Press Ctrl+C"})};
 $("btnPng").onclick=function(){var c=$("qrcanvas");if(!c)return;c.toBlob(function(b){var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fname("videohub_qr","png");a.click()})};
-
+$("btnCompare").onclick=function(){var h=parseHub($("rep").value);showResult(compareHub(h))};
+$("btnBackup").onclick=function(){var h=parseHub($("rep").value);
+  if(!h.ok){showResult({recognized:false,diffs:[],checked:0,matched:0});return}
+  var d=new Date(),ds=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+  download("videohub_backup_"+(h.model?h.model.replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"")+"_":"")+ds+".txt",backupText(h))};
+$("btnIntoTable").onclick=function(){var t=$("rep").value;if(!parseHub(t).ok){showResult({recognized:false,diffs:[],checked:0,matched:0});return}$("result").innerHTML="";load(t)};
 
 function tsvText(hdr){
   var t="";
-  if(hdr)t+=["\u25b6 IN","FROM (PATCH)","IN LABEL","OUT LABEL","ROUTED SOURCE","XPT","OUT \u25b6"].join("\t")+"\n";
-  state.rows.forEach(function(r,i){var p=i+1,v=r.xpt!==""&&/^\d+$/.test(r.xpt)&&+r.xpt>=1&&+r.xpt<=N?+r.xpt:0;
-    t+=["\u25b6 IN "+pad(p),r.from,r.inl,r.outl,v?state.rows[v-1].inl:"",r.xpt,"OUT "+pad(p)+" \u25b6"].join("\t")+"\n"});
+  if(hdr)t+=["▶ IN","FROM (PATCH)","IN LABEL","OUT LABEL","ROUTED SOURCE","XPT","OUT ▶"].join("\t")+"\n";
+  state.rows.forEach(function(r,i){var p=i+1,hasI=p<=state.ins,hasO=p<=state.outs,v=hasO&&validX(r.xpt)?+r.xpt:0;
+    t+=[hasI?"▶ IN "+pad(p):"",hasI?r.from:"",hasI?r.inl:"",hasO?r.outl:"",v?state.rows[v-1].inl:"",hasO?r.xpt:"",hasO?"OUT "+pad(p)+" ▶":""].join("\t")+"\n"});
   return t}
 function htmlTable(hdr){
   var rows=tsvText(hdr).replace(/\n$/,"").split("\n");
   return "<meta charset='utf-8'><table><tbody>"+rows.map(function(r){return"<tr>"+r.split("\t").map(function(c){return"<td>"+esc(c)+"</td>"}).join("")+"</tr>"}).join("")+"</tbody></table>"}
 $("btnLucid").onclick=function(){var n=$("lucidnote"),hdr=$("chkHdr").checked,txt=tsvText(hdr),html=htmlTable(hdr);
-  function ok(){n.textContent="Copied. In Lucid: click first data cell, press Esc, paste, then set the whole table to font size 5 + Bold.";n.style.color="#1d6b33"}
-  function bad(){n.textContent="Clipboard blocked by the browser.";n.style.color="#a12622"}
+  function ok(){n.textContent="Copied. In Lucid: click first data cell, press Esc, paste, then set the whole table to font size 5 + Bold.";n.style.color="var(--green)"}
+  function bad(){n.textContent="Clipboard blocked by the browser.";n.style.color="var(--red)"}
   if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
     navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([txt],{type:"text/plain"})})]).then(ok,function(){(navigator.clipboard.writeText(txt)).then(ok,bad)})}
   else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,bad)}else bad()};
 
 // test hooks
-window.__vh={htmlTable:htmlTable,tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,csvText:csvText,pdfBytes:pdfBytes,analyze:analyze,pack:pack,unpack:unpack};
+window.__vh={htmlTable:htmlTable,tsvText:tsvText,parseText:parseText,load:load,state:state,loadText:loadText,labelSetText:labelSetText,csvText:csvText,pdfBytes:pdfBytes,analyze:analyze,pack:pack,unpack:unpack,parseHub:parseHub,compareHub:compareHub,backupText:backupText,cleanLabel:cleanLabel,setSize:setSize,isHost:isHost,setFileName:setFileName,fname:fname};
 
 // boot: link payload, else blank template
 (async function(){
   var h=location.hash.replace(/^#/,"");
   if(/^[zj]\./.test(h)){
-    try{var d=await unpack(h);
-      var rows=blankRows();(d.p||[]).slice(0,N).forEach(function(a,i){rows[i]={from:a[0]||"",inl:a[1]||"IN "+pad(i+1),outl:a[2]||"OUT "+pad(i+1),xpt:a[3]||""}});
-      state.rows=rows;state.job=d.j||"";original=clone(rows);note("Loaded from link.",false);render();return}
+    try{var d=await unpack(h),ins=d.s?clamp(d.s[0]):40,outs=d.s?clamp(d.s[1]):40;
+      var rows=blankRows(ins,outs);(d.p||[]).slice(0,nrows(ins,outs)).forEach(function(a,i){var r=rows[i];r.from=a[0]||"";if(i<ins&&a[1])r.inl=a[1];if(i<outs){if(a[2])r.outl=a[2];r.xpt=a[3]||""}});
+      state.ins=ins;state.outs=outs;state.rows=rows;state.job=d.j||"";
+      if(d.l)state.limit=Math.max(4,Math.min(64,+d.l||DEFAULT_LIMIT));if(d.u===0)state.blank=false;
+      original=snap();note("Loaded from link.",false);render();return}
     catch(e){note("That link couldn't be read. Paste the table instead.",true)}}
   render();
 })();
 })();
+
 </script>
 </body>
 </html>
